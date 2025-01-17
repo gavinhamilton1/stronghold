@@ -255,21 +255,32 @@ class Stronghold {
 
   handleMobileMessage(data) {
     console.log('Processing mobile message:', data);
-    const messageEl = document.createElement('div');
-    messageEl.style.margin = '10px';
-    messageEl.style.padding = '10px';
-    messageEl.style.background = '#f0f0f0';
-    messageEl.style.borderRadius = '4px';
-    messageEl.style.maxWidth = '80%';
-    messageEl.style.wordBreak = 'break-word';
-    
-    const messageText = document.createElement('p');
-    messageText.style.margin = '0';
-    messageText.textContent = data;
-    messageEl.appendChild(messageText);
-    
-    this.containerElement.appendChild(messageEl);
-    this.containerElement.scrollTop = this.containerElement.scrollHeight;
+    try {
+        const messageEl = document.createElement('div');
+        messageEl.style.margin = '10px';
+        messageEl.style.padding = '10px';
+        messageEl.style.background = '#f0f0f0';
+        messageEl.style.borderRadius = '4px';
+        messageEl.style.maxWidth = '80%';
+        messageEl.style.wordBreak = 'break-word';
+        
+        const messageText = document.createElement('p');
+        messageText.style.margin = '0';
+        messageText.textContent = data;
+        messageEl.appendChild(messageText);
+        
+        if (!this.containerElement) {
+            console.error('Container element not found');
+            return;
+        }
+        
+        console.log('Adding message to container:', this.containerElement.id);
+        this.containerElement.appendChild(messageEl);
+        this.containerElement.scrollTop = this.containerElement.scrollHeight;
+        console.log('Message added successfully');
+    } catch (error) {
+        console.error('Error handling mobile message:', error);
+    }
   }
 
   startPolling() {

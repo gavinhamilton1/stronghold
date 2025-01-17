@@ -200,6 +200,7 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
                 
                 # Get the client ID from the mapping for all message types
                 client_id = STEP_UP_TO_CLIENT.get(step_up_id)
+                logger.info(f"🔍 Looking up client_id for step_up_id {step_up_id}: found {client_id}")
                 if not client_id:
                     logger.error(f"❌ No client_id found for step_up_id: {step_up_id}")
                     continue
@@ -221,7 +222,6 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
                         })
 
                 elif data["type"] == "message":
-                    # Forward message to both SSE and polling
                     message_content = data.get('content', '')
                     logger.info(f"💬 Processing message: {message_content} for client: {client_id}")
                     
@@ -231,6 +231,7 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
                         "type": "mobile_message",
                         "data": message_content
                     })
+                    logger.info(f"📊 Current polling events for {client_id}: {list(POLLING_EVENTS[client_id])}")
                     
                     # Send via SSE if available
                     if client_id in CONNECTIONS:
@@ -239,6 +240,8 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
                             "event": "mobile_message",
                             "data": message_content
                         })
+                    else:
+                        logger.info(f"ℹ️ No SSE connection for client: {client_id}, using polling only")
                     
             except Exception as e:
                 logger.error(f"❌ Error processing WebSocket message: {e}")
