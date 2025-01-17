@@ -2,6 +2,7 @@ class Stronghold {
   constructor() {
     this.eventSource = null;
     this.containerElement = null;
+    this.timerInterval = null;
     this.initializeAALLevel();
     console.log('Stronghold initialized');
   }
@@ -19,10 +20,38 @@ class Stronghold {
     }
   }
 
+  startAALTimer(seconds) {
+    let timeLeft = seconds;
+    const authLevelDiv = document.getElementById('auth-level');
+    const timerSpan = document.createElement('span');
+    timerSpan.style.marginLeft = '10px';
+    timerSpan.style.fontSize = '14px';
+    timerSpan.style.color = '#666';
+    authLevelDiv.appendChild(timerSpan);
+
+    this.timerInterval = setInterval(() => {
+      timeLeft--;
+      timerSpan.textContent = `(${timeLeft}s)`;
+      
+      if (timeLeft <= 0) {
+        clearInterval(this.timerInterval);
+        this.downgradeAAL();
+        this.startStepUp();  // Start new step-up process
+      }
+    }, 1000);
+  }
+
   downgradeAAL() {
+    clearInterval(this.timerInterval);  // Clear any existing timer
     const authLevelDiv = document.getElementById('auth-level');
     const downgradeButton = document.getElementById('downgrade-button');
     
+    // Remove timer if it exists
+    const timerSpan = authLevelDiv.querySelector('span');
+    if (timerSpan) {
+      timerSpan.remove();
+    }
+
     authLevelDiv.textContent = 'Auth Level: AAL2';
     authLevelDiv.style.color = '#28a745';
     downgradeButton.style.display = 'none';
@@ -105,6 +134,9 @@ class Stronghold {
         downgradeButton.style.display = 'block';
         localStorage.setItem('authLevel', 'AAL3');
         this.aalUpdated = true;
+
+        // Start 10-second timer
+        this.startAALTimer(10);
     });
 
     // Listen for mobile messages
@@ -195,6 +227,20 @@ class Stronghold {
       console.log('Closing SSE connection');
       this.eventSource.close();
       this.eventSource = null;
+    }
+  }
+
+  async startStepUp() {
+    console.log('Starting step-up process');
+    try {
+      const clientId = await this.initializeStepUp();
+      const result = await fetch(`/initiate-step-up/${clientId}`, {
+        method: 'POST'
+      });
+      const data = await result.json();
+      console.log('Step-up initiated response:', data);
+    } catch (error) {
+      console.error('Step-up error:', error);
     }
   }
 }

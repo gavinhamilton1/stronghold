@@ -3,6 +3,25 @@ class MobileStepUp {
         this.scanner = null;
         this.stepUpId = null;
         this.credentialId = null;
+        this.setupScanAgainButton();
+    }
+
+    setupScanAgainButton() {
+        const scanAgainButton = document.getElementById('scan-again');
+        scanAgainButton.onclick = () => {
+            // Hide input container and scan button
+            document.getElementById('input-container').style.display = 'none';
+            scanAgainButton.style.display = 'none';
+            
+            // Show and start scanner
+            document.getElementById('reader').style.display = 'block';
+            this.startQRScanner();
+            
+            // Close existing WebSocket if any
+            if (this.ws) {
+                this.ws.close();
+            }
+        };
     }
 
     async init() {
@@ -39,7 +58,10 @@ class MobileStepUp {
         document.getElementById('reader').style.display = 'none';
         this.stepUpId = stepUpId;
 
-        // Immediately start authentication instead of showing button
+        // Show scan again button
+        document.getElementById('scan-again').style.display = 'block';
+
+        // Immediately start authentication
         await this.handleAuthentication();
     }
 
