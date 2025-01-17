@@ -240,8 +240,36 @@ class Stronghold {
             this.handleStepUpInitiated(data);
         },
         'auth_complete': () => {
-            // This won't be called anymore, handled directly in handlePolledEvent
             console.log('Polling: Received auth complete');
+            // Handle auth complete but don't stop polling
+            const authLevelDiv = document.getElementById('auth-level');
+            const downgradeButton = document.getElementById('downgrade-button');
+            
+            // Remove QR code container if it exists
+            const qrContainer = document.getElementById('qr-container');
+            if (qrContainer) {
+                console.log('Removing QR code container');
+                qrContainer.remove();
+            }
+            
+            console.log('Updating auth level display');
+            authLevelDiv.textContent = 'Auth Level: AAL3';
+            authLevelDiv.style.color = '#fd7e14';
+            downgradeButton.style.display = 'block';
+            localStorage.setItem('authLevel', 'AAL3');
+            this.aalUpdated = true;
+
+            console.log('Starting AAL timer');
+            this.startAALTimer(20);
+            
+            // Only close SSE if it exists
+            if (this.eventSource) {
+                console.log('Closing SSE connection');
+                this.eventSource.close();
+                this.eventSource = null;
+            }
+            
+            console.log('Keeping polling active for messages');
         },
         'mobile_message': (data) => {
             console.log('Polling: Received mobile message:', data);
@@ -313,13 +341,8 @@ class Stronghold {
     const handler = this.eventHandlers[event.type];
     if (handler) {
         console.log(`Found handler for event type: ${event.type}`);
-        // Don't call handleAuthComplete twice
-        if (event.type === 'auth_complete') {
-            console.log('Auth complete received, handling directly...');
-            this.handleAuthComplete();
-        } else {
-            handler(event.data);
-        }
+        // Call the handler directly for all events
+        handler(event.data);
     } else {
         console.warn('Unknown event type:', event.type);
     }
