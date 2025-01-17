@@ -3,6 +3,8 @@ class Stronghold {
     this.eventSource = null;
     this.containerElement = null;
     this.timerInterval = null;
+    this.pollingInterval = null;
+    this.clientId = null;
     this.initializeAALLevel();
     console.log('Stronghold initialized');
   }
@@ -67,42 +69,95 @@ class Stronghold {
       throw new Error('Container element not found');
     }
 
-    if (this.eventSource) {
-      console.log('Closing existing SSE connection');
-      this.eventSource.close();
-    }
+    try {
+      // Try SSE first
+      if (this.eventSource) {
+        console.log('Closing existing SSE connection');
+        this.eventSource.close();
+      }
 
-    // Create new SSE connection with error handling
-    console.log('Creating new SSE connection to:', sseUrl);
-    this.eventSource = new EventSource(sseUrl);
-    
-    // Add detailed connection state logging
-    this.eventSource.onopen = () => {
+      console.log('Creating new SSE connection to:', sseUrl);
+      this.eventSource = new EventSource(sseUrl);
+      
+      // Add detailed connection state logging
+      this.eventSource.onopen = () => {
         console.log('✅ SSE connection opened successfully');
-    };
+      };
 
-    this.eventSource.onerror = (error) => {
-        console.error('❌ SSE connection error:', error);
-        console.log('SSE readyState:', this.eventSource.readyState);
-        // 0 = CONNECTING, 1 = OPEN, 2 = CLOSED
-        if (this.eventSource.readyState === 2) {
-            console.error('SSE connection closed - might be blocked by network');
-        }
-    };
-    
-    // Get client ID from response headers
+      return await this.setupSSE();
+    } catch (error) {
+      console.error('SSE failed, falling back to polling:', error);
+      return await this.setupPolling();
+    }
+  }
+
+  async setupSSE() {
     return new Promise((resolve, reject) => {
-        this.eventSource.onmessage = (event) => {
-            const clientId = JSON.parse(event.data).client_id;
-            console.log('Got client ID from SSE:', clientId);
-            
-            // Remove the onmessage handler and set up event listeners
-            this.eventSource.onmessage = null;
-            this.setupEventListeners();
-            
-            resolve(clientId);
-        };
+      let timeoutId = setTimeout(() => {
+        console.error('SSE connection timed out');
+        this.eventSource.close();
+        reject(new Error('SSE connection timed out'));
+      }, 5000);  // 5 second timeout
+
+      this.eventSource.onmessage = (event) => {
+        clearTimeout(timeoutId);
+        const clientId = JSON.parse(event.data).client_id;
+        this.clientId = clientId;
+        console.log('Got client ID from SSE:', clientId);
+        this.setupEventListeners();
+        resolve(clientId);
+      };
+
+      this.eventSource.onerror = (error) => {
+        clearTimeout(timeoutId);
+        console.error('❌ SSE connection error:', error);
+        this.eventSource.close();
+        reject(error);
+      };
     });
+  }
+
+  async setupPolling() {
+    // Get initial client ID
+    const response = await fetch('/register-sse');
+    const data = await response.json();
+    this.clientId = data.client_id;
+
+    // Start polling for updates
+    this.startPolling();
+    return this.clientId;
+  }
+
+  startPolling() {
+    console.log('Starting polling for updates');
+    this.pollingInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/poll-updates/${this.clientId}`);
+        const updates = await response.json();
+        
+        if (updates.events) {
+          updates.events.forEach(event => {
+            this.handlePolledEvent(event);
+          });
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 1000);  // Poll every second
+  }
+
+  handlePolledEvent(event) {
+    switch(event.type) {
+      case 'step_up_initiated':
+        this.handleStepUpInitiated(event.data);
+        break;
+      case 'auth_complete':
+        this.handleAuthComplete();
+        break;
+      case 'mobile_message':
+        this.handleMobileMessage(event.data);
+        break;
+    }
   }
 
   setupEventListeners() {

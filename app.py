@@ -7,7 +7,7 @@ from sse_starlette.sse import EventSourceResponse
 from typing import Dict
 import uuid
 import asyncio
-from collections import defaultdict
+from collections import defaultdict, deque
 from pathlib import Path
 import json
 from fastapi.logger import logger
@@ -39,6 +39,9 @@ WS_CONNECTIONS: Dict[str, WebSocket] = {}
 
 # Store subscriptions (in a real app, use a database)
 push_subscriptions = {}
+
+# Store events for polling
+POLLING_EVENTS = defaultdict(lambda: deque(maxlen=100))
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -102,32 +105,17 @@ async def register_sse(request: Request):
 
 @app.post("/initiate-step-up/{client_id}")
 async def initiate_step_up(client_id: str):
-    logger.info(f"🔄 Initiating step-up for client: {client_id}")
-    if client_id not in CONNECTIONS:
-        logger.warning(f"❌ Client {client_id} not found in connections")
-        return JSONResponse(
-            status_code=404,
-            content={"error": "Client connection not found"}
-        )
-
-    # Generate step-up ID
     step_up_id = str(uuid.uuid4())
-    logger.info(f"🆔 Generated step-up ID: {step_up_id}")
-
-    # Store mapping between step-up ID and client ID
-    CONNECTIONS[step_up_id] = CONNECTIONS[client_id]
-    logger.info(f"🔗 Mapped step-up ID to client ID: {step_up_id} -> {client_id}")
-
-    # Send step-up initiated event
-    event_data = {
-        "event": "step_up_initiated",
+    event = {
+        "type": "step_up_initiated",
         "data": step_up_id
     }
-    logger.info(f"📤 Sending event: {event_data}")
-    await CONNECTIONS[client_id].put(event_data)
-
-    # Send push notification
-    send_push_notification("New QR code ready for scanning")
+    
+    # Store for both SSE and polling
+    if client_id in CONNECTIONS:
+        await CONNECTIONS[client_id].put(event)
+    POLLING_EVENTS[client_id].append(event)
+    
     return {"status": "success", "step_up_id": step_up_id}
 
 @app.post("/complete-step-up/{client_id}")
@@ -240,6 +228,14 @@ async def test_notification():
 async def get_vapid_public_key():
     """Endpoint to get the VAPID public key"""
     return {"publicKey": VAPID_PUBLIC_KEY}
+
+@app.get("/poll-updates/{client_id}")
+async def poll_updates(client_id: str):
+    """Endpoint for polling updates when SSE is blocked"""
+    events = []
+    while POLLING_EVENTS[client_id]:
+        events.append(POLLING_EVENTS[client_id].popleft())
+    return {"events": events}
 
 if __name__ == "__main__":
     import uvicorn
