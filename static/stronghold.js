@@ -74,20 +74,29 @@ class Stronghold {
         console.log('Received mobile message event:', event);
         console.log('Mobile message event data:', event.data);
         try {
-            const message = JSON.parse(event.data);
-            console.log('Parsed mobile message:', message);
-            
             // Create message element
-            const messageEl = document.createElement('p');
-            messageEl.textContent = message;
+            const messageEl = document.createElement('div');
             messageEl.style.margin = '10px';
             messageEl.style.padding = '10px';
             messageEl.style.background = '#f0f0f0';
             messageEl.style.borderRadius = '4px';
+            messageEl.style.maxWidth = '80%';
+            messageEl.style.wordBreak = 'break-word';
             
+            // Add message text
+            const messageText = document.createElement('p');
+            messageText.style.margin = '0';
+            messageText.textContent = event.data; // Use event.data directly
+            messageEl.appendChild(messageText);
+            
+            // Add to container
             this.containerElement.appendChild(messageEl);
+            
+            // Scroll to bottom
+            this.containerElement.scrollTop = this.containerElement.scrollHeight;
         } catch (error) {
             console.error('Error handling mobile message:', error);
+            console.error('Raw event data:', event.data);
         }
     });
   }
