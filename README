@@ -1,3 +1,18 @@
-to run server
+# Stronghold
 
-uvicorn app:app --reload
+[Previous content...]
+
+## Licenses
+
+### MIT License (node-qrcode)
+- ✅ Commercial use
+- ✅ Modification
+- ✅ Distribution
+- ✅ Private use
+- ✅ Sublicense
+
+The only requirements are:
+1. Include the original license text
+2. Include the copyright notice
+
+Example required notice:

@@ -119,9 +119,10 @@ class Stronghold {
 
   handleStepUpCompleted() {
     console.log('Handling step-up completion');
+    
     // Clear container and show completion message
     this.containerElement.innerHTML = `
-      <div class="step-up-complete">
+      <div class="step-up-complete" style="text-align: center; padding: 20px;">
         <h3>Step-up Complete</h3>
       </div>
     `;
