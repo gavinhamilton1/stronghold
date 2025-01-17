@@ -75,6 +75,10 @@ class MobileStepUp {
     }
 
     startQRScanner() {
+        // Show the QR scanner container first
+        document.getElementById('reader').style.display = 'block';
+        window.mobileDebug.log('Starting QR scanner');
+        
         this.scanner.start(
             { facingMode: "environment" },
             {
@@ -82,7 +86,10 @@ class MobileStepUp {
                 qrbox: { width: 250, height: 250 }
             },
             this.handleQRCode.bind(this)
-        );
+        ).catch(error => {
+            window.mobileDebug.error('Error starting QR scanner: ' + error);
+            alert('Failed to start camera');
+        });
     }
 
     async handleQRCode(stepUpId) {
