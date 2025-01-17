@@ -92,14 +92,23 @@ class Stronghold {
             console.error('SSE connection timed out');
             this.eventSource.close();
             reject(new Error('SSE connection timed out'));
-        }, 5000);  // 5 second timeout
+        }, 3000);  // Reduced timeout to 3 seconds
+
+        // Add connection timeout check
+        let connectionTimeoutId = setTimeout(() => {
+            console.error('SSE connection blocked or too slow');
+            this.eventSource.close();
+            reject(new Error('SSE connection blocked'));
+        }, 1000);  // Check if connection is established within 1 second
 
         this.eventSource.onopen = () => {
             console.log('SSE connection opened');
+            clearTimeout(connectionTimeoutId);
         };
 
         this.eventSource.onmessage = (event) => {
             clearTimeout(timeoutId);
+            clearTimeout(connectionTimeoutId);
             const clientId = JSON.parse(event.data).client_id;
             this.clientId = clientId;
             console.log('Got client ID from SSE:', clientId);
@@ -109,6 +118,7 @@ class Stronghold {
 
         this.eventSource.onerror = (error) => {
             clearTimeout(timeoutId);
+            clearTimeout(connectionTimeoutId);
             console.error('SSE connection error:', error);
             this.eventSource.close();
             reject(error);
