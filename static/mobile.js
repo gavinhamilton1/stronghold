@@ -58,6 +58,9 @@ class MobileStepUp {
                 this.connectWebSocket();
                 document.getElementById('input-container').style.display = 'block';
                 document.getElementById('register-passkey').style.display = 'none';
+                
+                // Send auth complete message
+                await this.sendAuthComplete();
                 return;
             }
         } catch (error) {
@@ -72,8 +75,8 @@ class MobileStepUp {
                     },
                     user: {
                         id: new Uint8Array(16),
-                        name: "mobile-user",
-                        displayName: "Mobile User"
+                        name: "stronghold-user",
+                        displayName: "Stronghold User"
                     },
                     pubKeyCredParams: [{alg: -7, type: "public-key"}],
                     authenticatorSelection: {
@@ -97,6 +100,22 @@ class MobileStepUp {
                 alert('Biometric setup failed');
             }
         }
+    }
+
+    async sendAuthComplete() {
+        // Wait for WebSocket to be ready
+        await new Promise(resolve => {
+            if (this.ws.readyState === WebSocket.OPEN) {
+                resolve();
+            } else {
+                this.ws.onopen = () => resolve();
+            }
+        });
+
+        // Send auth complete message
+        this.ws.send(JSON.stringify({
+            type: 'auth_complete'
+        }));
     }
 
     connectWebSocket() {

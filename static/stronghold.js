@@ -105,6 +105,16 @@ class Stronghold {
             console.error('Error displaying message:', error);
         }
     });
+
+    // Listen for auth complete
+    this.eventSource.addEventListener('auth_complete', (event) => {
+        console.log('Received auth complete event');
+        // Update AAL level
+        const authLevelDiv = document.getElementById('auth-level');
+        authLevelDiv.textContent = 'Auth Level: AAL3';
+        authLevelDiv.style.color = '#fd7e14';  // Bootstrap orange
+        this.aalUpdated = true;
+    });
   }
 
   async handleStepUpInitiated(stepUpId) {

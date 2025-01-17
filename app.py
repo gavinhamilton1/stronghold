@@ -150,7 +150,15 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
                 data = await websocket.receive_json()
                 logger.info(f"📥 Received WebSocket message for {step_up_id}: {data}")
                 
-                if data["type"] == "message":
+                if data["type"] == "auth_complete":
+                    # Send auth complete event to browser
+                    if step_up_id in CONNECTIONS:
+                        logger.info(f"🔐 Sending auth complete event for {step_up_id}")
+                        await CONNECTIONS[step_up_id].put({
+                            "event": "auth_complete",
+                            "data": "{}"
+                        })
+                elif data["type"] == "message":
                     logger.info(f"💬 Processing message type event for {step_up_id}")
                     # Forward message to SSE connection
                     if step_up_id in CONNECTIONS:
