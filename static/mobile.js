@@ -4,6 +4,7 @@ class MobileStepUp {
         this.stepUpId = null;
         this.credentialId = null;
         this.setupScanAgainButton();
+        this.registerPushNotifications();
     }
 
     setupScanAgainButton() {
@@ -238,6 +239,54 @@ class MobileStepUp {
                 button.click();
             }
         };
+    }
+
+    async registerPushNotifications() {
+        try {
+            // Register service worker
+            const registration = await navigator.serviceWorker.register('/static/service-worker.js');
+            console.log('Service Worker registered');
+
+            // Request notification permission
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                throw new Error('Notification permission denied');
+            }
+
+            // Subscribe to push notifications
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: this.urlBase64ToUint8Array('YOUR_PUBLIC_VAPID_KEY')
+            });
+
+            // Send subscription to server
+            await fetch('/register-push', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(subscription)
+            });
+            
+            console.log('Push notification subscription successful');
+        } catch (error) {
+            console.error('Failed to register for push notifications:', error);
+        }
+    }
+
+    urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
     }
 }
 

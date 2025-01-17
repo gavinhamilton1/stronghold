@@ -12,6 +12,7 @@ from pathlib import Path
 import json
 from fastapi.logger import logger
 import logging
+from pywebpush import webpush, WebPushException
 
 app = FastAPI()
 
@@ -35,6 +36,9 @@ CONNECTIONS: Dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
 
 # Store WebSocket connections
 WS_CONNECTIONS: Dict[str, WebSocket] = {}
+
+# Store subscriptions (in a real app, use a database)
+push_subscriptions = {}
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -108,6 +112,8 @@ async def initiate_step_up(client_id: str):
     logger.info(f"📤 Sending event: {event_data}")
     await CONNECTIONS[client_id].put(event_data)
 
+    # Send push notification
+    send_push_notification("New QR code ready for scanning")
     return {"status": "success", "step_up_id": step_up_id}
 
 @app.post("/complete-step-up/{client_id}")
@@ -184,6 +190,26 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
 async def mobile(request: Request):
     """Serve the mobile page"""
     return templates.TemplateResponse("mobile.html", {"request": request})
+
+@app.route('/register-push', methods=['POST'])
+def register_push():
+    subscription_info = request.json
+    push_subscriptions[subscription_info.get('endpoint')] = subscription_info
+    return jsonify({'status': 'success'})
+
+def send_push_notification(message):
+    for subscription in push_subscriptions.values():
+        try:
+            webpush(
+                subscription_info=subscription,
+                data=message,
+                vapid_private_key="YOUR_VAPID_PRIVATE_KEY",
+                vapid_claims={
+                    "sub": "mailto:your@email.com"
+                }
+            )
+        except WebPushException as e:
+            print("Push notification failed:", e)
 
 if __name__ == "__main__":
     import uvicorn
