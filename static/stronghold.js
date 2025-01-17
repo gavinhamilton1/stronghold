@@ -233,14 +233,30 @@ class Stronghold {
   async startStepUp() {
     console.log('Starting step-up process');
     try {
-      const clientId = await this.initializeStepUp();
-      const result = await fetch(`/initiate-step-up/${clientId}`, {
-        method: 'POST'
-      });
-      const data = await result.json();
-      console.log('Step-up initiated response:', data);
+        // Initialize new SSE connection
+        const clientId = await this.initializeStepUp('step-up-container', '/register-sse');
+        console.log('Got client ID:', clientId);
+        
+        // Initiate step-up
+        const result = await fetch(`/initiate-step-up/${clientId}`, {
+            method: 'POST'
+        });
+        const data = await result.json();
+        console.log('Step-up initiated response:', data);
+        
+        // Clear any existing status
+        const statusDiv = document.getElementById('status');
+        if (statusDiv) {
+            statusDiv.textContent = '';
+            statusDiv.className = '';
+        }
     } catch (error) {
-      console.error('Step-up error:', error);
+        console.error('Step-up error:', error);
+        const statusDiv = document.getElementById('status');
+        if (statusDiv) {
+            statusDiv.textContent = 'Error starting step-up: ' + error.message;
+            statusDiv.className = 'status error';
+        }
     }
   }
 }
