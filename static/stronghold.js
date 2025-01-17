@@ -9,17 +9,23 @@ class Stronghold {
   initializeAALLevel() {
     const savedAAL = localStorage.getItem('authLevel');
     const authLevelDiv = document.getElementById('auth-level');
+    const downgradeButton = document.getElementById('downgrade-button');
+    
     if (savedAAL === 'AAL3') {
       authLevelDiv.textContent = 'Auth Level: AAL3';
       authLevelDiv.style.color = '#fd7e14';
+      downgradeButton.style.display = 'block';
       this.aalUpdated = true;
     }
   }
 
   downgradeAAL() {
     const authLevelDiv = document.getElementById('auth-level');
+    const downgradeButton = document.getElementById('downgrade-button');
+    
     authLevelDiv.textContent = 'Auth Level: AAL2';
     authLevelDiv.style.color = '#28a745';
+    downgradeButton.style.display = 'none';
     localStorage.removeItem('authLevel');
     this.aalUpdated = false;
   }
@@ -130,8 +136,11 @@ class Stronghold {
         console.log('Received auth complete event');
         // Update AAL level
         const authLevelDiv = document.getElementById('auth-level');
+        const downgradeButton = document.getElementById('downgrade-button');
+        
         authLevelDiv.textContent = 'Auth Level: AAL3';
         authLevelDiv.style.color = '#fd7e14';
+        downgradeButton.style.display = 'block';
         localStorage.setItem('authLevel', 'AAL3');
         this.aalUpdated = true;
     });
