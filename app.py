@@ -130,26 +130,38 @@ async def complete_step_up(client_id: str):
 @app.websocket("/ws/{step_up_id}")
 async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
     print(f"WebSocket connection request for step_up_id: {step_up_id}")
-    await websocket.accept()
-    WS_CONNECTIONS[step_up_id] = websocket
-    print(f"WebSocket connection accepted for step_up_id: {step_up_id}")
-    
     try:
+        await websocket.accept()
+        print(f"WebSocket connection accepted for step_up_id: {step_up_id}")
+        WS_CONNECTIONS[step_up_id] = websocket
+        
+        # Log active connections
+        print(f"Active WebSocket connections: {list(WS_CONNECTIONS.keys())}")
+        print(f"Active SSE connections: {list(CONNECTIONS.keys())}")
+        
         while True:
-            data = await websocket.receive_json()
-            print(f"Received WebSocket message: {data}")
-            if data["type"] == "message":
-                # Forward message to SSE connection
-                if step_up_id in CONNECTIONS:
-                    print(f"Forwarding message to SSE connection: {data['content']}")
-                    await CONNECTIONS[step_up_id].put({
-                        "event": "mobile_message",
-                        "data": data["content"]
-                    })
-                else:
-                    print(f"No SSE connection found for step_up_id: {step_up_id}")
+            try:
+                data = await websocket.receive_json()
+                print(f"Received raw WebSocket message for {step_up_id}: {data}")
+                
+                if data["type"] == "message":
+                    print(f"Processing message type event for {step_up_id}")
+                    # Forward message to SSE connection
+                    if step_up_id in CONNECTIONS:
+                        print(f"Forwarding message to SSE connection: {data['content']}")
+                        await CONNECTIONS[step_up_id].put({
+                            "event": "mobile_message",
+                            "data": data["content"]
+                        })
+                    else:
+                        print(f"No SSE connection found for step_up_id: {step_up_id}")
+                        print(f"Available SSE connections: {list(CONNECTIONS.keys())}")
+            except Exception as e:
+                print(f"Error processing WebSocket message: {e}")
+                break
+                
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        print(f"WebSocket connection error: {e}")
     finally:
         WS_CONNECTIONS.pop(step_up_id, None)
         print(f"WebSocket connection closed for step_up_id: {step_up_id}")
