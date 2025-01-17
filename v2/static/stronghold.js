@@ -170,6 +170,64 @@ class Stronghold {
     }
   }
 
+  setupEventListeners() {
+    // Listen for step-up initiation
+    this.eventSource.addEventListener('step_up_initiated', (event) => {
+        console.log('Received step-up initiated event:', event);
+        try {
+            const stepUpId = JSON.parse(event.data);
+            console.log('Received step-up ID:', stepUpId);
+            this.handleStepUpInitiated(stepUpId);
+        } catch (error) {
+            console.error('Error processing step-up event:', error);
+        }
+    });
+
+    // Listen for auth complete
+    this.eventSource.addEventListener('auth_complete', () => {
+        console.log('Received auth complete event');
+        this.handleAuthComplete();
+    });
+
+    // Listen for mobile messages
+    this.eventSource.addEventListener('mobile_message', (event) => {
+        console.log('Received mobile message:', event);
+        this.handleMobileMessage(event.data);
+    });
+  }
+
+  handleAuthComplete() {
+    console.log('Processing auth complete');
+    // Update AAL level
+    const authLevelDiv = document.getElementById('auth-level');
+    const downgradeButton = document.getElementById('downgrade-button');
+    
+    // Remove QR code container if it exists
+    const qrContainer = document.getElementById('qr-container');
+    if (qrContainer) {
+        qrContainer.remove();
+    }
+    
+    authLevelDiv.textContent = 'Auth Level: AAL3';
+    authLevelDiv.style.color = '#fd7e14';
+    downgradeButton.style.display = 'block';
+    localStorage.setItem('authLevel', 'AAL3');
+    this.aalUpdated = true;
+
+    // Start 20-second timer
+    this.startAALTimer(20);
+
+    // Clean up connections
+    if (this.eventSource) {
+        this.eventSource.close();
+        this.eventSource = null;
+    }
+    if (this.pollingInterval) {
+        clearInterval(this.pollingInterval);
+        this.pollingInterval = null;
+    }
+  }
+
   setupPollingEventHandlers() {
     this.eventHandlers = {
         'step_up_initiated': (data) => {
@@ -178,35 +236,32 @@ class Stronghold {
         },
         'auth_complete': () => {
             console.log('Polling: Received auth complete');
-            const authLevelDiv = document.getElementById('auth-level');
-            const downgradeButton = document.getElementById('downgrade-button');
-            
-            authLevelDiv.textContent = 'Auth Level: AAL3';
-            authLevelDiv.style.color = '#fd7e14';
-            downgradeButton.style.display = 'block';
-            localStorage.setItem('authLevel', 'AAL3');
-            this.aalUpdated = true;
-            this.startAALTimer(20);
+            this.handleAuthComplete();
         },
         'mobile_message': (data) => {
             console.log('Polling: Received mobile message:', data);
-            const messageEl = document.createElement('div');
-            messageEl.style.margin = '10px';
-            messageEl.style.padding = '10px';
-            messageEl.style.background = '#f0f0f0';
-            messageEl.style.borderRadius = '4px';
-            messageEl.style.maxWidth = '80%';
-            messageEl.style.wordBreak = 'break-word';
-            
-            const messageText = document.createElement('p');
-            messageText.style.margin = '0';
-            messageText.textContent = data;
-            messageEl.appendChild(messageText);
-            
-            this.containerElement.appendChild(messageEl);
-            this.containerElement.scrollTop = this.containerElement.scrollHeight;
+            this.handleMobileMessage(data);
         }
     };
+  }
+
+  handleMobileMessage(data) {
+    console.log('Processing mobile message:', data);
+    const messageEl = document.createElement('div');
+    messageEl.style.margin = '10px';
+    messageEl.style.padding = '10px';
+    messageEl.style.background = '#f0f0f0';
+    messageEl.style.borderRadius = '4px';
+    messageEl.style.maxWidth = '80%';
+    messageEl.style.wordBreak = 'break-word';
+    
+    const messageText = document.createElement('p');
+    messageText.style.margin = '0';
+    messageText.textContent = data;
+    messageEl.appendChild(messageText);
+    
+    this.containerElement.appendChild(messageEl);
+    this.containerElement.scrollTop = this.containerElement.scrollHeight;
   }
 
   startPolling() {
@@ -241,20 +296,6 @@ class Stronghold {
     const handler = this.eventHandlers[event.type];
     if (handler) {
         handler(event.data);
-        
-        // Clean up after auth_complete
-        if (event.type === 'auth_complete') {
-            console.log('Auth complete received, stopping polling');
-            if (this.pollingInterval) {
-                clearInterval(this.pollingInterval);
-                this.pollingInterval = null;
-            }
-            // Clear the QR code
-            const qrContainer = document.getElementById('qr-container');
-            if (qrContainer) {
-                qrContainer.remove();
-            }
-        }
     } else {
         console.warn('Unknown event type:', event.type);
     }
