@@ -229,6 +229,7 @@ class Stronghold {
   }
 
   setupPollingEventHandlers() {
+    console.log('Setting up polling event handlers');
     this.eventHandlers = {
         'step_up_initiated': (data) => {
             console.log('Polling: Received step-up initiated:', data);
@@ -280,22 +281,30 @@ class Stronghold {
             const updates = await response.json();
             
             if (updates.events && updates.events.length > 0) {
-                console.log('Processing', updates.events.length, 'events');
+                console.log('Processing events:', updates.events);
                 updates.events.forEach(event => {
+                    console.log('Processing event:', event);
                     this.handlePolledEvent(event);
                 });
             }
         } catch (error) {
             console.error('Polling error:', error);
         }
-    }, 1000);  // Poll every second
+    }, 1000);
   }
 
   handlePolledEvent(event) {
     console.log('Handling polled event:', event);
     const handler = this.eventHandlers[event.type];
     if (handler) {
+        console.log(`Found handler for event type: ${event.type}`);
         handler(event.data);
+        
+        // Clean up after auth_complete
+        if (event.type === 'auth_complete') {
+            console.log('Auth complete received, cleaning up...');
+            this.handleAuthComplete();
+        }
     } else {
         console.warn('Unknown event type:', event.type);
     }

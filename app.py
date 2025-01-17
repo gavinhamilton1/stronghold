@@ -197,19 +197,24 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
                 
                 if data["type"] == "auth_complete":
                     # Send auth complete event to browser via both SSE and polling
+                    logger.info(f"🔐 Processing auth_complete for step_up_id: {step_up_id}")
+                    
+                    # Add to polling queue first
+                    logger.info(f"🔐 Adding auth complete event to polling queue for {step_up_id}")
+                    POLLING_EVENTS[step_up_id].append({
+                        "type": "auth_complete",
+                        "data": None
+                    })
+                    
+                    # Also try SSE if available
                     if step_up_id in CONNECTIONS:
                         logger.info(f"🔐 Sending auth complete event via SSE for {step_up_id}")
                         await CONNECTIONS[step_up_id].put({
                             "event": "auth_complete",
                             "data": "{}"
                         })
-                    
-                    # Add to polling queue
-                    logger.info(f"🔐 Adding auth complete event to polling queue for {step_up_id}")
-                    POLLING_EVENTS[step_up_id].append({
-                        "type": "auth_complete",
-                        "data": None
-                    })
+                    else:
+                        logger.info(f"ℹ️ No SSE connection found for {step_up_id}, using polling only")
 
                 elif data["type"] == "message":
                     # Forward message to both SSE and polling
