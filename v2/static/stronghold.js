@@ -221,18 +221,15 @@ class Stronghold {
     console.log('Starting AAL timer');
     this.startAALTimer(20);
 
-    console.log('Cleaning up connections');
-    // Clean up connections
+    // Only close SSE, keep polling active for messages
     if (this.eventSource) {
         console.log('Closing SSE connection');
         this.eventSource.close();
         this.eventSource = null;
     }
-    if (this.pollingInterval) {
-        console.log('Stopping polling');
-        clearInterval(this.pollingInterval);
-        this.pollingInterval = null;
-    }
+    
+    // Don't stop polling - we need it for messages
+    console.log('Keeping polling active for messages');
   }
 
   setupPollingEventHandlers() {
