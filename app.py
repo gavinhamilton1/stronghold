@@ -84,13 +84,9 @@ async def register_sse(request: Request):
 
 @app.post("/initiate-step-up/{client_id}")
 async def initiate_step_up(client_id: str):
-    """
-    Endpoint to initiate a step-up authentication.
-    Generates a step-up ID and sends it through SSE.
-    """
-    print(f"Initiating step-up for client: {client_id}")
+    logger.info(f"🔄 Initiating step-up for client: {client_id}")
     if client_id not in CONNECTIONS:
-        print(f"Client {client_id} not found in connections")
+        logger.warning(f"❌ Client {client_id} not found in connections")
         return JSONResponse(
             status_code=404,
             content={"error": "Client connection not found"}
@@ -98,14 +94,18 @@ async def initiate_step_up(client_id: str):
 
     # Generate step-up ID
     step_up_id = str(uuid.uuid4())
-    print(f"Generated step-up ID: {step_up_id}")
+    logger.info(f"🆔 Generated step-up ID: {step_up_id}")
 
-    # Send step-up initiated event - Simplified event structure
+    # Store mapping between step-up ID and client ID
+    CONNECTIONS[step_up_id] = CONNECTIONS[client_id]
+    logger.info(f"🔗 Mapped step-up ID to client ID: {step_up_id} -> {client_id}")
+
+    # Send step-up initiated event
     event_data = {
         "event": "step_up_initiated",
-        "data": step_up_id  # Send just the ID as data
+        "data": step_up_id
     }
-    print(f"Sending event: {event_data}")
+    logger.info(f"📤 Sending event: {event_data}")
     await CONNECTIONS[client_id].put(event_data)
 
     return {"status": "success", "step_up_id": step_up_id}
