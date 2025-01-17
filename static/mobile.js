@@ -45,11 +45,12 @@ class MobileStepUp {
 
     async handleAuthentication() {
         try {
-            // Try to authenticate first
+            // Try to authenticate first with required biometrics
             const assertion = await navigator.credentials.get({
                 publicKey: {
                     challenge: new Uint8Array(32),
                     rpId: window.location.hostname,
+                    userVerification: "required"  // Force biometric verification
                 }
             });
             
@@ -64,7 +65,7 @@ class MobileStepUp {
                 return;
             }
         } catch (error) {
-            // If authentication fails, try registration
+            // If authentication fails, try registration with required biometrics
             window.mobileDebug.log('No existing passkey, attempting registration');
             try {
                 const publicKey = {
@@ -81,7 +82,8 @@ class MobileStepUp {
                     pubKeyCredParams: [{alg: -7, type: "public-key"}],
                     authenticatorSelection: {
                         authenticatorAttachment: "platform",
-                        requireResidentKey: true
+                        requireResidentKey: true,
+                        userVerification: "required"  // Force biometric verification
                     }
                 };
 
