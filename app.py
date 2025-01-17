@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, WebSocket
-from fastapi.responses import JSONResponse, Response, HTMLResponse
+from fastapi.responses import JSONResponse, Response, HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -56,8 +56,8 @@ VAPID_CLAIMS = {
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Serve the latest version (v2) by default"""
-    return templates_v2.TemplateResponse("index.html", {"request": request})
+    """Redirect root to v2"""
+    return RedirectResponse(url="/v2")
 
 @app.get("/v1", response_class=HTMLResponse)
 async def home_v1(request: Request):
@@ -81,8 +81,8 @@ async def mobile_v2(request: Request):
 
 @app.get("/mobile", response_class=HTMLResponse)
 async def mobile(request: Request):
-    """Serve the latest version (v2) mobile page"""
-    return templates_v2.TemplateResponse("mobile.html", {"request": request})
+    """Redirect mobile to v2/mobile"""
+    return RedirectResponse(url="/v2/mobile")
 
 @app.get("/register-sse")
 async def register_sse(request: Request):
