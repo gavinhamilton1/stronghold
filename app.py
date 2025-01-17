@@ -190,35 +190,43 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
         logger.info(f"✅ WebSocket connection accepted for step_up_id: {step_up_id}")
         WS_CONNECTIONS[step_up_id] = websocket
         
-        # Log active connections
-        logger.info(f"📊 Active WebSocket connections: {list(WS_CONNECTIONS.keys())}")
-        logger.info(f"📊 Active SSE connections: {list(CONNECTIONS.keys())}")
-        
         while True:
             try:
                 data = await websocket.receive_json()
                 logger.info(f"📥 Received WebSocket message for {step_up_id}: {data}")
                 
                 if data["type"] == "auth_complete":
-                    # Send auth complete event to browser
+                    # Send auth complete event to browser via both SSE and polling
                     if step_up_id in CONNECTIONS:
-                        logger.info(f"🔐 Sending auth complete event for {step_up_id}")
+                        logger.info(f"🔐 Sending auth complete event via SSE for {step_up_id}")
                         await CONNECTIONS[step_up_id].put({
                             "event": "auth_complete",
                             "data": "{}"
                         })
+                    
+                    # Add to polling queue
+                    logger.info(f"🔐 Adding auth complete event to polling queue for {step_up_id}")
+                    POLLING_EVENTS[step_up_id].append({
+                        "type": "auth_complete",
+                        "data": None
+                    })
+
                 elif data["type"] == "message":
-                    logger.info(f"💬 Processing message type event for {step_up_id}")
-                    # Forward message to SSE connection
+                    # Forward message to both SSE and polling
                     if step_up_id in CONNECTIONS:
-                        logger.info(f"➡️ Forwarding message to SSE connection: {data['content']}")
+                        logger.info(f"➡️ Forwarding message via SSE: {data['content']}")
                         await CONNECTIONS[step_up_id].put({
                             "event": "mobile_message",
                             "data": data["content"]
                         })
-                    else:
-                        logger.warning(f"❌ No SSE connection found for step_up_id: {step_up_id}")
-                        logger.warning(f"❌ Available SSE connections: {list(CONNECTIONS.keys())}")
+                    
+                    # Add to polling queue
+                    logger.info(f"➡️ Adding message to polling queue: {data['content']}")
+                    POLLING_EVENTS[step_up_id].append({
+                        "type": "mobile_message",
+                        "data": data["content"]
+                    })
+                    
             except Exception as e:
                 logger.error(f"❌ Error processing WebSocket message: {e}")
                 break
