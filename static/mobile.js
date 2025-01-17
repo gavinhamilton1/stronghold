@@ -6,91 +6,66 @@ class MobileStepUp {
     }
 
     async init() {
-        await this.checkExistingPasskey();
+        this.setupAuthButton();
         this.setupQRScanner();
         this.setupMessageInput();
     }
 
-    async checkExistingPasskey() {
+    setupAuthButton() {
         const button = document.getElementById('register-passkey');
-        try {
-            // Try to get credentials
-            const creds = await navigator.credentials.get({
-                publicKey: {
-                    challenge: new Uint8Array(32),
-                    rpId: window.location.hostname,
-                }
-            });
-            
-            if (creds) {
-                console.log('Found existing passkey');
-                this.credentialId = creds.id;
-                button.textContent = "Authenticate with Passkey";
-                button.onclick = () => this.authenticateWithPasskey();
-            } else {
-                console.log('No existing passkey found');
-                button.textContent = "Register Passkey";
-                button.onclick = () => this.registerPasskey();
-            }
-        } catch (error) {
-            console.log('No existing passkey found:', error);
-            button.textContent = "Register Passkey";
-            button.onclick = () => this.registerPasskey();
-        }
+        button.textContent = "Authenticate with Biometrics";
+        button.onclick = () => this.handleAuthentication();
     }
 
-    async registerPasskey() {
-        const button = document.getElementById('register-passkey');
+    async handleAuthentication() {
         try {
-            const publicKey = {
-                challenge: new Uint8Array(32),
-                rp: {
-                    name: "Stronghold Step-up",
-                    id: window.location.hostname
-                },
-                user: {
-                    id: new Uint8Array(16),
-                    name: "mobile-user",
-                    displayName: "Mobile User"
-                },
-                pubKeyCredParams: [{alg: -7, type: "public-key"}],
-                authenticatorSelection: {
-                    authenticatorAttachment: "platform",
-                    requireResidentKey: true
-                }
-            };
-
-            this.passkey = await navigator.credentials.create({
-                publicKey
-            });
-            
-            button.textContent = "Authenticate with Passkey";
-            button.onclick = () => this.authenticateWithPasskey();
-            
-            this.startQRScanner();
-        } catch (error) {
-            console.error('Error creating passkey:', error);
-            alert('Failed to create passkey');
-        }
-    }
-
-    async authenticateWithPasskey() {
-        try {
+            // Try to authenticate first
             const assertion = await navigator.credentials.get({
                 publicKey: {
                     challenge: new Uint8Array(32),
                     rpId: window.location.hostname,
                 }
             });
-
+            
             if (assertion) {
-                // Show QR scanner after successful authentication
-                document.getElementById('reader').style.display = 'block';
+                window.mobileDebug.log('Successfully authenticated with existing passkey');
                 this.startQRScanner();
+                return;
             }
         } catch (error) {
-            console.error('Authentication failed:', error);
-            alert('Biometric authentication failed');
+            // If authentication fails, try registration
+            window.mobileDebug.log('No existing passkey, attempting registration');
+            try {
+                const publicKey = {
+                    challenge: new Uint8Array(32),
+                    rp: {
+                        name: "Stronghold Step-up",
+                        id: window.location.hostname
+                    },
+                    user: {
+                        id: new Uint8Array(16),
+                        name: "mobile-user",
+                        displayName: "Mobile User"
+                    },
+                    pubKeyCredParams: [{alg: -7, type: "public-key"}],
+                    authenticatorSelection: {
+                        authenticatorAttachment: "platform",
+                        requireResidentKey: true
+                    }
+                };
+
+                const credential = await navigator.credentials.create({
+                    publicKey
+                });
+                
+                if (credential) {
+                    window.mobileDebug.log('Successfully registered new passkey');
+                    this.startQRScanner();
+                }
+            } catch (regError) {
+                window.mobileDebug.error('Failed to register passkey: ' + regError);
+                alert('Biometric setup failed');
+            }
         }
     }
 
