@@ -87,50 +87,6 @@ class Stronghold {
         }
     });
 
-    // Listen for step-up completion
-    this.eventSource.addEventListener('step_up_completed', () => {
-        console.log('Received step-up completed event');
-        this.handleStepUpCompleted();
-    });
-
-    // Listen for mobile messages
-    this.eventSource.addEventListener('mobile_message', (event) => {
-        console.log('Received mobile message event:', event);
-        if (!this.aalUpdated) {
-            // Update AAL level on first message (indicates successful linking)
-            const authLevelDiv = document.getElementById('auth-level');
-            authLevelDiv.textContent = 'Auth Level: AAL3';
-            authLevelDiv.style.color = '#fd7e14';  // Bootstrap orange
-            this.aalUpdated = true;
-        }
-        
-        // Create and display the message
-        try {
-            // Create message element
-            const messageEl = document.createElement('div');
-            messageEl.style.margin = '10px';
-            messageEl.style.padding = '10px';
-            messageEl.style.background = '#f0f0f0';
-            messageEl.style.borderRadius = '4px';
-            messageEl.style.maxWidth = '80%';
-            messageEl.style.wordBreak = 'break-word';
-            
-            // Add message text
-            const messageText = document.createElement('p');
-            messageText.style.margin = '0';
-            messageText.textContent = event.data;
-            messageEl.appendChild(messageText);
-            
-            // Add to container
-            this.containerElement.appendChild(messageEl);
-            
-            // Scroll to bottom
-            this.containerElement.scrollTop = this.containerElement.scrollHeight;
-        } catch (error) {
-            console.error('Error displaying message:', error);
-        }
-    });
-
     // Listen for auth complete
     this.eventSource.addEventListener('auth_complete', (event) => {
         console.log('Received auth complete event');
@@ -149,6 +105,30 @@ class Stronghold {
         downgradeButton.style.display = 'block';
         localStorage.setItem('authLevel', 'AAL3');
         this.aalUpdated = true;
+    });
+
+    // Listen for mobile messages
+    this.eventSource.addEventListener('mobile_message', (event) => {
+        console.log('Received mobile message:', event);
+        try {
+            const messageEl = document.createElement('div');
+            messageEl.style.margin = '10px';
+            messageEl.style.padding = '10px';
+            messageEl.style.background = '#f0f0f0';
+            messageEl.style.borderRadius = '4px';
+            messageEl.style.maxWidth = '80%';
+            messageEl.style.wordBreak = 'break-word';
+            
+            const messageText = document.createElement('p');
+            messageText.style.margin = '0';
+            messageText.textContent = event.data;
+            messageEl.appendChild(messageText);
+            
+            this.containerElement.appendChild(messageEl);
+            this.containerElement.scrollTop = this.containerElement.scrollHeight;
+        } catch (error) {
+            console.error('Error displaying message:', error);
+        }
     });
   }
 

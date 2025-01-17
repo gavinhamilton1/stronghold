@@ -45,12 +45,12 @@ class MobileStepUp {
 
     async handleAuthentication() {
         try {
-            // Try to authenticate first with required biometrics
+            // Try to authenticate first
             const assertion = await navigator.credentials.get({
                 publicKey: {
                     challenge: new Uint8Array(32),
                     rpId: window.location.hostname,
-                    userVerification: "required"  // Force biometric verification
+                    userVerification: "required"
                 }
             });
             
@@ -58,14 +58,13 @@ class MobileStepUp {
                 window.mobileDebug.log('Successfully authenticated with existing passkey');
                 this.connectWebSocket();
                 document.getElementById('input-container').style.display = 'block';
-                document.getElementById('register-passkey').style.display = 'none';
                 
                 // Send auth complete message
                 await this.sendAuthComplete();
                 return;
             }
         } catch (error) {
-            // If authentication fails, try registration with required biometrics
+            // If authentication fails, try registration
             window.mobileDebug.log('No existing passkey, attempting registration');
             try {
                 const publicKey = {
@@ -83,7 +82,7 @@ class MobileStepUp {
                     authenticatorSelection: {
                         authenticatorAttachment: "platform",
                         requireResidentKey: true,
-                        userVerification: "required"  // Force biometric verification
+                        userVerification: "required"
                     }
                 };
 
@@ -95,7 +94,6 @@ class MobileStepUp {
                     window.mobileDebug.log('Successfully registered new passkey');
                     this.connectWebSocket();
                     document.getElementById('input-container').style.display = 'block';
-                    document.getElementById('register-passkey').style.display = 'none';
                     
                     // Send auth complete message after registration too
                     await this.sendAuthComplete();
@@ -108,19 +106,26 @@ class MobileStepUp {
     }
 
     async sendAuthComplete() {
-        // Wait for WebSocket to be ready
-        await new Promise(resolve => {
-            if (this.ws.readyState === WebSocket.OPEN) {
-                resolve();
-            } else {
-                this.ws.onopen = () => resolve();
+        try {
+            // Wait for WebSocket to be ready
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                await new Promise((resolve) => {
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        resolve();
+                    } else {
+                        this.ws.onopen = () => resolve();
+                    }
+                });
             }
-        });
 
-        // Send auth complete message
-        this.ws.send(JSON.stringify({
-            type: 'auth_complete'
-        }));
+            // Send auth complete message
+            console.log('Sending auth_complete message');
+            this.ws.send(JSON.stringify({
+                type: 'auth_complete'
+            }));
+        } catch (error) {
+            console.error('Error sending auth complete:', error);
+        }
     }
 
     connectWebSocket() {
