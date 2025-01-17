@@ -64,20 +64,25 @@ async def register_sse(request: Request):
     """
     client_id = str(uuid.uuid4())
     
+    # Log connection attempt
+    logger.info(f"🔄 SSE connection attempt from {request.client.host}")
+    logger.info(f"📡 Request headers: {request.headers}")
+    
     # Create the queue immediately
     CONNECTIONS[client_id] = asyncio.Queue()
-    print(f"Created new connection for client: {client_id}")
+    logger.info(f"✅ Created new connection for client: {client_id}")
     
     async def event_generator():
         try:
             # Send initial message with client ID
+            logger.info(f"📤 Sending initial client ID message to {client_id}")
             yield {
                 "data": json.dumps({"client_id": client_id})
             }
             
             while True:
                 message = await CONNECTIONS[client_id].get()
-                print(f"Sending message to client {client_id}: {message}")
+                logger.info(f"📤 Sending message to client {client_id}: {message}")
                 if message.get("type") == "close":
                     break
                 data = json.dumps(message["data"])
@@ -86,10 +91,12 @@ async def register_sse(request: Request):
                     "data": data
                 }
         except asyncio.CancelledError:
-            pass
+            logger.error(f"❌ SSE connection cancelled for client: {client_id}")
+        except Exception as e:
+            logger.error(f"❌ Error in SSE connection: {str(e)}")
         finally:
             CONNECTIONS.pop(client_id, None)
-            print(f"Cleaned up connection for client: {client_id}")
+            logger.info(f"👋 Cleaned up connection for client: {client_id}")
 
     return EventSourceResponse(event_generator())
 
