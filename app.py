@@ -57,6 +57,9 @@ VAPID_CLAIMS = {
 # Add this with other global variables
 POLLING_EVENTS = defaultdict(lambda: deque(maxlen=100))
 
+# Add a mapping dictionary for step-up IDs to client IDs
+STEP_UP_TO_CLIENT = {}
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Redirect root to v2"""
@@ -136,6 +139,10 @@ async def initiate_step_up(client_id: str):
     logger.info(f"🔄 Initiating step-up for client: {client_id}")
     step_up_id = str(uuid.uuid4())
     
+    # Store the mapping
+    STEP_UP_TO_CLIENT[step_up_id] = client_id
+    logger.info(f"🔗 Mapped step_up_id {step_up_id} to client_id {client_id}")
+    
     # Create event with consistent format for both SSE and polling
     event = {
         "type": "step_up_initiated",
@@ -152,10 +159,6 @@ async def initiate_step_up(client_id: str):
     
     logger.info(f"📤 Adding event to polling queue for client: {client_id}")
     POLLING_EVENTS[client_id].append(event)
-    
-    # Store mapping between step-up ID and client ID
-    if client_id in CONNECTIONS:
-        CONNECTIONS[step_up_id] = CONNECTIONS[client_id]
     
     return {"status": "success", "step_up_id": step_up_id}
 
@@ -196,25 +199,27 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
                 logger.info(f"📥 Received WebSocket message for {step_up_id}: {data}")
                 
                 if data["type"] == "auth_complete":
-                    # Send auth complete event to browser via both SSE and polling
-                    logger.info(f"🔐 Processing auth_complete for step_up_id: {step_up_id}")
+                    # Get the client ID from the mapping
+                    client_id = STEP_UP_TO_CLIENT.get(step_up_id)
+                    logger.info(f"🔐 Found client_id {client_id} for step_up_id {step_up_id}")
                     
-                    # Add to polling queue first
-                    logger.info(f"🔐 Adding auth complete event to polling queue for {step_up_id}")
-                    POLLING_EVENTS[step_up_id].append({
-                        "type": "auth_complete",
-                        "data": None
-                    })
-                    
-                    # Also try SSE if available
-                    if step_up_id in CONNECTIONS:
-                        logger.info(f"🔐 Sending auth complete event via SSE for {step_up_id}")
-                        await CONNECTIONS[step_up_id].put({
-                            "event": "auth_complete",
-                            "data": "{}"
+                    if client_id:
+                        # Add to polling queue
+                        logger.info(f"🔐 Adding auth complete event to polling queue for client: {client_id}")
+                        POLLING_EVENTS[client_id].append({
+                            "type": "auth_complete",
+                            "data": None
                         })
+                        
+                        # Also try SSE if available
+                        if client_id in CONNECTIONS:
+                            logger.info(f"🔐 Sending auth complete event via SSE for client: {client_id}")
+                            await CONNECTIONS[client_id].put({
+                                "event": "auth_complete",
+                                "data": "{}"
+                            })
                     else:
-                        logger.info(f"ℹ️ No SSE connection found for {step_up_id}, using polling only")
+                        logger.error(f"❌ No client_id found for step_up_id: {step_up_id}")
 
                 elif data["type"] == "message":
                     # Forward message to both SSE and polling
