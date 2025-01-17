@@ -94,6 +94,9 @@ class MobileStepUp {
                     this.connectWebSocket();
                     document.getElementById('input-container').style.display = 'block';
                     document.getElementById('register-passkey').style.display = 'none';
+                    
+                    // Send auth complete message after registration too
+                    await this.sendAuthComplete();
                 }
             } catch (regError) {
                 window.mobileDebug.error('Failed to register passkey: ' + regError);
