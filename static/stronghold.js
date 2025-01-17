@@ -2,7 +2,26 @@ class Stronghold {
   constructor() {
     this.eventSource = null;
     this.containerElement = null;
+    this.initializeAALLevel();
     console.log('Stronghold initialized');
+  }
+
+  initializeAALLevel() {
+    const savedAAL = localStorage.getItem('authLevel');
+    const authLevelDiv = document.getElementById('auth-level');
+    if (savedAAL === 'AAL3') {
+      authLevelDiv.textContent = 'Auth Level: AAL3';
+      authLevelDiv.style.color = '#fd7e14';
+      this.aalUpdated = true;
+    }
+  }
+
+  downgradeAAL() {
+    const authLevelDiv = document.getElementById('auth-level');
+    authLevelDiv.textContent = 'Auth Level: AAL2';
+    authLevelDiv.style.color = '#28a745';
+    localStorage.removeItem('authLevel');
+    this.aalUpdated = false;
   }
 
   async initializeStepUp(containerElementId, sseUrl) {
@@ -112,7 +131,8 @@ class Stronghold {
         // Update AAL level
         const authLevelDiv = document.getElementById('auth-level');
         authLevelDiv.textContent = 'Auth Level: AAL3';
-        authLevelDiv.style.color = '#fd7e14';  // Bootstrap orange
+        authLevelDiv.style.color = '#fd7e14';
+        localStorage.setItem('authLevel', 'AAL3');
         this.aalUpdated = true;
     });
   }
