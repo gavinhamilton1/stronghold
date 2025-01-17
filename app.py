@@ -105,6 +105,7 @@ async def register_sse(request: Request):
 
 @app.post("/initiate-step-up/{client_id}")
 async def initiate_step_up(client_id: str):
+    logger.info(f"🔄 Initiating step-up for client: {client_id}")
     step_up_id = str(uuid.uuid4())
     event = {
         "type": "step_up_initiated",
@@ -113,7 +114,10 @@ async def initiate_step_up(client_id: str):
     
     # Store for both SSE and polling
     if client_id in CONNECTIONS:
+        logger.info(f"📤 Sending via SSE to client: {client_id}")
         await CONNECTIONS[client_id].put(event)
+    
+    logger.info(f"📤 Adding event to polling queue for client: {client_id}")
     POLLING_EVENTS[client_id].append(event)
     
     return {"status": "success", "step_up_id": step_up_id}
@@ -232,9 +236,13 @@ async def get_vapid_public_key():
 @app.get("/poll-updates/{client_id}")
 async def poll_updates(client_id: str):
     """Endpoint for polling updates when SSE is blocked"""
+    logger.info(f"📥 Polling request from client: {client_id}")
     events = []
     while POLLING_EVENTS[client_id]:
-        events.append(POLLING_EVENTS[client_id].popleft())
+        event = POLLING_EVENTS[client_id].popleft()
+        events.append(event)
+        logger.info(f"📤 Sending polled event: {event}")
+    logger.info(f"📤 Returning {len(events)} events")
     return {"events": events}
 
 if __name__ == "__main__":
