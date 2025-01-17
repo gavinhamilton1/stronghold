@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import JSONResponse, Response, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -30,6 +30,9 @@ app.add_middleware(
 
 # Store active SSE connections
 CONNECTIONS: Dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
+
+# Store WebSocket connections
+WS_CONNECTIONS: Dict[str, WebSocket] = {}
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -123,6 +126,31 @@ async def complete_step_up(client_id: str):
     await CONNECTIONS[client_id].put({"type": "close"})
 
     return {"status": "success"}
+
+@app.websocket("/ws/{step_up_id}")
+async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
+    await websocket.accept()
+    WS_CONNECTIONS[step_up_id] = websocket
+    
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data["type"] == "message":
+                # Forward message to SSE connection
+                if step_up_id in CONNECTIONS:
+                    await CONNECTIONS[step_up_id].put({
+                        "event": "mobile_message",
+                        "data": data["content"]
+                    })
+    except:
+        pass
+    finally:
+        WS_CONNECTIONS.pop(step_up_id, None)
+
+@app.get("/mobile")
+async def mobile(request: Request):
+    """Serve the mobile page"""
+    return templates.TemplateResponse("mobile.html", {"request": request})
 
 if __name__ == "__main__":
     import uvicorn

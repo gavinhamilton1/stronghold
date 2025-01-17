@@ -68,6 +68,22 @@ class Stronghold {
         console.log('Received step-up completed event');
         this.handleStepUpCompleted();
     });
+
+    // Listen for mobile messages
+    this.eventSource.addEventListener('mobile_message', (event) => {
+        console.log('Received mobile message:', event.data);
+        const message = JSON.parse(event.data);
+        
+        // Create message element
+        const messageEl = document.createElement('p');
+        messageEl.textContent = message;
+        messageEl.style.margin = '10px';
+        messageEl.style.padding = '10px';
+        messageEl.style.background = '#f0f0f0';
+        messageEl.style.borderRadius = '4px';
+        
+        this.containerElement.appendChild(messageEl);
+    });
   }
 
   async handleStepUpInitiated(stepUpId) {
