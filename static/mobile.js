@@ -74,12 +74,6 @@ class MobileStepUp {
                     challenge: new Uint8Array(32),
                     rpId: window.location.hostname,
                     userVerification: "required",
-                    authenticatorSelection: {
-                        authenticatorAttachment: "platform",
-                        userVerification: "required",
-                        requireResidentKey: true,
-                        residentKey: "required"
-                    }
                 }
             });
             
