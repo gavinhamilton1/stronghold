@@ -205,24 +205,31 @@ class Stronghold {
     // Remove QR code container if it exists
     const qrContainer = document.getElementById('qr-container');
     if (qrContainer) {
+        console.log('Removing QR code container');
         qrContainer.remove();
+    } else {
+        console.log('No QR container found to remove');
     }
     
+    console.log('Updating auth level display');
     authLevelDiv.textContent = 'Auth Level: AAL3';
     authLevelDiv.style.color = '#fd7e14';
     downgradeButton.style.display = 'block';
     localStorage.setItem('authLevel', 'AAL3');
     this.aalUpdated = true;
 
-    // Start 20-second timer
+    console.log('Starting AAL timer');
     this.startAALTimer(20);
 
+    console.log('Cleaning up connections');
     // Clean up connections
     if (this.eventSource) {
+        console.log('Closing SSE connection');
         this.eventSource.close();
         this.eventSource = null;
     }
     if (this.pollingInterval) {
+        console.log('Stopping polling');
         clearInterval(this.pollingInterval);
         this.pollingInterval = null;
     }
@@ -236,8 +243,8 @@ class Stronghold {
             this.handleStepUpInitiated(data);
         },
         'auth_complete': () => {
+            // This won't be called anymore, handled directly in handlePolledEvent
             console.log('Polling: Received auth complete');
-            this.handleAuthComplete();
         },
         'mobile_message': (data) => {
             console.log('Polling: Received mobile message:', data);
@@ -298,12 +305,12 @@ class Stronghold {
     const handler = this.eventHandlers[event.type];
     if (handler) {
         console.log(`Found handler for event type: ${event.type}`);
-        handler(event.data);
-        
-        // Clean up after auth_complete
+        // Don't call handleAuthComplete twice
         if (event.type === 'auth_complete') {
-            console.log('Auth complete received, cleaning up...');
+            console.log('Auth complete received, handling directly...');
             this.handleAuthComplete();
+        } else {
+            handler(event.data);
         }
     } else {
         console.warn('Unknown event type:', event.type);
