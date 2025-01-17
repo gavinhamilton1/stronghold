@@ -135,8 +135,8 @@ class Stronghold {
         localStorage.setItem('authLevel', 'AAL3');
         this.aalUpdated = true;
 
-        // Start 10-second timer
-        this.startAALTimer(10);
+        // Start 20-second timer instead of 10
+        this.startAALTimer(20);
     });
 
     // Listen for mobile messages

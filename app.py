@@ -211,6 +211,19 @@ def send_push_notification(message):
         except WebPushException as e:
             print("Push notification failed:", e)
 
+@app.post("/test-notification")
+async def test_notification():
+    """Send a test notification to all registered devices"""
+    try:
+        send_push_notification("Test notification from Stronghold Step-up!")
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Error sending test notification: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 
