@@ -51,12 +51,9 @@ class MobileStepUp {
                     challenge: new Uint8Array(32),
                     rpId: window.location.hostname,
                     userVerification: "required",
-                    authenticatorSelection: {
-                        authenticatorAttachment: "platform",
-                        requireResidentKey: true,
-                        userVerification: "required",
-                        residentKey: "required"
-                    }
+                    authenticatorAttachment: "platform",
+                    requireResidentKey: true,
+                    residentKey: "required"
                 }
             });
             
@@ -90,7 +87,8 @@ class MobileStepUp {
                         requireResidentKey: true,
                         userVerification: "required",
                         residentKey: "required"
-                    }
+                    },
+                    attestation: "direct"
                 };
 
                 const credential = await navigator.credentials.create({
