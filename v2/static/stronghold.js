@@ -171,7 +171,6 @@ class Stronghold {
   }
 
   setupPollingEventHandlers() {
-    // This replaces setupEventListeners() for polling mode
     this.eventHandlers = {
         'step_up_initiated': (data) => {
             console.log('Polling: Received step-up initiated:', data);
@@ -181,11 +180,6 @@ class Stronghold {
             console.log('Polling: Received auth complete');
             const authLevelDiv = document.getElementById('auth-level');
             const downgradeButton = document.getElementById('downgrade-button');
-            const qrContainer = document.getElementById('qr-container');
-            
-            if (qrContainer) {
-                qrContainer.remove();
-            }
             
             authLevelDiv.textContent = 'Auth Level: AAL3';
             authLevelDiv.style.color = '#fd7e14';
@@ -247,6 +241,20 @@ class Stronghold {
     const handler = this.eventHandlers[event.type];
     if (handler) {
         handler(event.data);
+        
+        // Clean up after auth_complete
+        if (event.type === 'auth_complete') {
+            console.log('Auth complete received, stopping polling');
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+                this.pollingInterval = null;
+            }
+            // Clear the QR code
+            const qrContainer = document.getElementById('qr-container');
+            if (qrContainer) {
+                qrContainer.remove();
+            }
+        }
     } else {
         console.warn('Unknown event type:', event.type);
     }

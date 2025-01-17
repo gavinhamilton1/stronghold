@@ -62,6 +62,9 @@ class MobileStepUp {
         // Show scan again button
         document.getElementById('scan-again').style.display = 'block';
 
+        // Connect WebSocket before authentication
+        this.connectWebSocket();
+
         // Immediately start authentication
         await this.handleAuthentication();
     }
