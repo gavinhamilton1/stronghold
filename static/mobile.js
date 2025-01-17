@@ -39,10 +39,8 @@ class MobileStepUp {
         document.getElementById('reader').style.display = 'none';
         this.stepUpId = stepUpId;
 
-        // Show biometric button after QR scan
-        const authButton = document.getElementById('register-passkey');
-        authButton.style.display = 'block';
-        authButton.onclick = () => this.handleAuthentication();
+        // Immediately start authentication instead of showing button
+        await this.handleAuthentication();
     }
 
     async handleAuthentication() {

@@ -79,7 +79,31 @@ class Stronghold {
             this.aalUpdated = true;
         }
         
-        // Rest of the message handling...
+        // Create and display the message
+        try {
+            // Create message element
+            const messageEl = document.createElement('div');
+            messageEl.style.margin = '10px';
+            messageEl.style.padding = '10px';
+            messageEl.style.background = '#f0f0f0';
+            messageEl.style.borderRadius = '4px';
+            messageEl.style.maxWidth = '80%';
+            messageEl.style.wordBreak = 'break-word';
+            
+            // Add message text
+            const messageText = document.createElement('p');
+            messageText.style.margin = '0';
+            messageText.textContent = event.data;
+            messageEl.appendChild(messageText);
+            
+            // Add to container
+            this.containerElement.appendChild(messageEl);
+            
+            // Scroll to bottom
+            this.containerElement.scrollTop = this.containerElement.scrollHeight;
+        } catch (error) {
+            console.error('Error displaying message:', error);
+        }
     });
   }
 
