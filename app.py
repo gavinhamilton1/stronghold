@@ -40,9 +40,6 @@ WS_CONNECTIONS: Dict[str, WebSocket] = {}
 # Store subscriptions (in a real app, use a database)
 push_subscriptions = {}
 
-# Store events for polling
-POLLING_EVENTS = defaultdict(lambda: deque(maxlen=100))
-
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -106,20 +103,29 @@ async def register_sse(request: Request):
 @app.post("/initiate-step-up/{client_id}")
 async def initiate_step_up(client_id: str):
     logger.info(f"🔄 Initiating step-up for client: {client_id}")
+    if client_id not in CONNECTIONS:
+        logger.warning(f"❌ Client {client_id} not found in connections")
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Client connection not found"}
+        )
+
+    # Generate step-up ID
     step_up_id = str(uuid.uuid4())
-    event = {
-        "type": "step_up_initiated",
+    logger.info(f"🆔 Generated step-up ID: {step_up_id}")
+
+    # Store mapping between step-up ID and client ID
+    CONNECTIONS[step_up_id] = CONNECTIONS[client_id]
+    logger.info(f"🔗 Mapped step-up ID to client ID: {step_up_id} -> {client_id}")
+
+    # Send step-up initiated event
+    event_data = {
+        "event": "step_up_initiated",
         "data": step_up_id
     }
-    
-    # Store for both SSE and polling
-    if client_id in CONNECTIONS:
-        logger.info(f"📤 Sending via SSE to client: {client_id}")
-        await CONNECTIONS[client_id].put(event)
-    
-    logger.info(f"📤 Adding event to polling queue for client: {client_id}")
-    POLLING_EVENTS[client_id].append(event)
-    
+    logger.info(f"📤 Sending event: {event_data}")
+    await CONNECTIONS[client_id].put(event_data)
+
     return {"status": "success", "step_up_id": step_up_id}
 
 @app.post("/complete-step-up/{client_id}")
@@ -232,18 +238,6 @@ async def test_notification():
 async def get_vapid_public_key():
     """Endpoint to get the VAPID public key"""
     return {"publicKey": VAPID_PUBLIC_KEY}
-
-@app.get("/poll-updates/{client_id}")
-async def poll_updates(client_id: str):
-    """Endpoint for polling updates when SSE is blocked"""
-    logger.info(f"📥 Polling request from client: {client_id}")
-    events = []
-    while POLLING_EVENTS[client_id]:
-        event = POLLING_EVENTS[client_id].popleft()
-        events.append(event)
-        logger.info(f"📤 Sending polled event: {event}")
-    logger.info(f"📤 Returning {len(events)} events")
-    return {"events": events}
 
 if __name__ == "__main__":
     import uvicorn

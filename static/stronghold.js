@@ -3,8 +3,6 @@ class Stronghold {
     this.eventSource = null;
     this.containerElement = null;
     this.timerInterval = null;
-    this.pollingInterval = null;
-    this.clientId = null;
     this.initializeAALLevel();
     console.log('Stronghold initialized');
   }
@@ -69,122 +67,38 @@ class Stronghold {
         throw new Error('Container element not found');
     }
 
-    try {
-        // Try SSE first
-        if (this.eventSource) {
-            console.log('Closing existing SSE connection');
-            this.eventSource.close();
-        }
-
-        console.log('Creating new SSE connection to:', sseUrl);
-        this.eventSource = new EventSource(sseUrl);
-        
-        // Add detailed connection state logging
-        this.eventSource.onopen = () => {
-            console.log('✅ SSE connection opened successfully');
-        };
-
-        return await this.setupSSE();
-    } catch (error) {
-        console.error('SSE failed, falling back to polling:', error);
-        return await this.setupPolling();
-    }
-  }
-
-  async setupSSE() {
-    return new Promise((resolve, reject) => {
-      let timeoutId = setTimeout(() => {
-        console.error('SSE connection timed out');
+    if (this.eventSource) {
+        console.log('Closing existing SSE connection');
         this.eventSource.close();
-        reject(new Error('SSE connection timed out'));
-      }, 5000);  // 5 second timeout
-
-      this.eventSource.onmessage = (event) => {
-        clearTimeout(timeoutId);
-        const clientId = JSON.parse(event.data).client_id;
-        this.clientId = clientId;
-        console.log('Got client ID from SSE:', clientId);
-        this.setupEventListeners();
-        resolve(clientId);
-      };
-
-      this.eventSource.onerror = (error) => {
-        clearTimeout(timeoutId);
-        console.error('❌ SSE connection error:', error);
-        this.eventSource.close();
-        reject(error);
-      };
-    });
-  }
-
-  async setupPolling() {
-    console.log('Setting up polling mechanism');
-    try {
-        // Get initial client ID
-        const response = await fetch('/register-sse');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        this.clientId = data.client_id;
-        console.log('Got client ID for polling:', this.clientId);
-
-        // Start polling for updates
-        this.startPolling();
-        return this.clientId;
-    } catch (error) {
-        console.error('Error setting up polling:', error);
-        throw error;
     }
-  }
 
-  startPolling() {
-    console.log('Starting polling for updates');
-    if (this.pollingInterval) {
-        console.log('Clearing existing polling interval');
-        clearInterval(this.pollingInterval);
-    }
+    // Create new SSE connection
+    console.log('Creating new SSE connection to:', sseUrl);
+    this.eventSource = new EventSource(sseUrl);
     
-    this.pollingInterval = setInterval(async () => {
-        try {
-            console.log('Polling for updates...');
-            const response = await fetch(`/poll-updates/${this.clientId}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const updates = await response.json();
-            console.log('Received updates:', updates);
-            
-            if (updates.events && updates.events.length > 0) {
-                console.log('Processing', updates.events.length, 'events');
-                updates.events.forEach(event => {
-                    this.handlePolledEvent(event);
-                });
-            }
-        } catch (error) {
-            console.error('Polling error:', error);
-        }
-    }, 1000);
-  }
-
-  handlePolledEvent(event) {
-    console.log('Handling polled event:', event);  // Add logging
-    switch(event.type) {
-        case 'step_up_initiated':
-            console.log('Processing step_up_initiated event');
-            this.handleStepUpInitiated(event.data);
-            break;
-        case 'auth_complete':
-            console.log('Processing auth_complete event');
-            this.handleAuthComplete();
-            break;
-        case 'mobile_message':
-            console.log('Processing mobile_message event');
-            this.handleMobileMessage(event.data);
-            break;
-        default:
-            console.warn('Unknown event type:', event.type);
-    }
+    // Get client ID from response headers
+    return new Promise((resolve, reject) => {
+        this.eventSource.onopen = () => {
+            console.log('SSE connection opened');
+            // Get client ID from custom header in the first message
+            this.eventSource.onmessage = (event) => {
+                const clientId = JSON.parse(event.data).client_id;
+                console.log('Got client ID from SSE:', clientId);
+                
+                // Remove the onmessage handler and set up event listeners
+                this.eventSource.onmessage = null;
+                this.setupEventListeners();
+                
+                resolve(clientId);
+            };
+        };
+        
+        this.eventSource.onerror = (error) => {
+            console.error('SSE connection error:', error);
+            this.eventSource.close();
+            reject(error);
+        };
+    });
   }
 
   setupEventListeners() {
