@@ -198,44 +198,47 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
                 data = await websocket.receive_json()
                 logger.info(f"📥 Received WebSocket message for {step_up_id}: {data}")
                 
+                # Get the client ID from the mapping for all message types
+                client_id = STEP_UP_TO_CLIENT.get(step_up_id)
+                if not client_id:
+                    logger.error(f"❌ No client_id found for step_up_id: {step_up_id}")
+                    continue
+
                 if data["type"] == "auth_complete":
-                    # Get the client ID from the mapping
-                    client_id = STEP_UP_TO_CLIENT.get(step_up_id)
-                    logger.info(f"🔐 Found client_id {client_id} for step_up_id {step_up_id}")
+                    # Add to polling queue
+                    logger.info(f"🔐 Adding auth complete event to polling queue for client: {client_id}")
+                    POLLING_EVENTS[client_id].append({
+                        "type": "auth_complete",
+                        "data": None
+                    })
                     
-                    if client_id:
-                        # Add to polling queue
-                        logger.info(f"🔐 Adding auth complete event to polling queue for client: {client_id}")
-                        POLLING_EVENTS[client_id].append({
-                            "type": "auth_complete",
-                            "data": None
+                    # Also try SSE if available
+                    if client_id in CONNECTIONS:
+                        logger.info(f"🔐 Sending auth complete event via SSE for client: {client_id}")
+                        await CONNECTIONS[client_id].put({
+                            "event": "auth_complete",
+                            "data": "{}"
                         })
-                        
-                        # Also try SSE if available
-                        if client_id in CONNECTIONS:
-                            logger.info(f"🔐 Sending auth complete event via SSE for client: {client_id}")
-                            await CONNECTIONS[client_id].put({
-                                "event": "auth_complete",
-                                "data": "{}"
-                            })
-                    else:
-                        logger.error(f"❌ No client_id found for step_up_id: {step_up_id}")
 
                 elif data["type"] == "message":
                     # Forward message to both SSE and polling
-                    if step_up_id in CONNECTIONS:
-                        logger.info(f"➡️ Forwarding message via SSE: {data['content']}")
-                        await CONNECTIONS[step_up_id].put({
-                            "event": "mobile_message",
-                            "data": data["content"]
-                        })
+                    message_content = data.get('content', '')
+                    logger.info(f"💬 Processing message: {message_content} for client: {client_id}")
                     
                     # Add to polling queue
-                    logger.info(f"➡️ Adding message to polling queue: {data['content']}")
-                    POLLING_EVENTS[step_up_id].append({
+                    logger.info(f"➡️ Adding message to polling queue for client: {client_id}")
+                    POLLING_EVENTS[client_id].append({
                         "type": "mobile_message",
-                        "data": data["content"]
+                        "data": message_content
                     })
+                    
+                    # Send via SSE if available
+                    if client_id in CONNECTIONS:
+                        logger.info(f"➡️ Sending message via SSE for client: {client_id}")
+                        await CONNECTIONS[client_id].put({
+                            "event": "mobile_message",
+                            "data": message_content
+                        })
                     
             except Exception as e:
                 logger.error(f"❌ Error processing WebSocket message: {e}")
