@@ -124,25 +124,32 @@ class MobileStepUp {
     connectWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/${this.stepUpId}`;
-        console.log('Connecting to WebSocket:', wsUrl);
+        window.mobileDebug.log('Connecting to WebSocket: ' + wsUrl);
         
-        this.ws = new WebSocket(wsUrl);
-        
-        this.ws.onopen = () => {
-            console.log('WebSocket connected successfully');
-        };
-        
-        this.ws.onmessage = (event) => {
-            console.log('WebSocket message received:', event.data);
-        };
-        
-        this.ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
-        
-        this.ws.onclose = () => {
-            console.log('WebSocket connection closed');
-        };
+        try {
+            this.ws = new WebSocket(wsUrl);
+            
+            this.ws.onopen = () => {
+                window.mobileDebug.log('WebSocket connected successfully');
+                document.getElementById('send-message').style.backgroundColor = '#28a745';
+            };
+            
+            this.ws.onmessage = (event) => {
+                window.mobileDebug.log('WebSocket message received: ' + event.data);
+            };
+            
+            this.ws.onerror = (error) => {
+                window.mobileDebug.error('WebSocket error: ' + error);
+                document.getElementById('send-message').style.backgroundColor = '#dc3545';
+            };
+            
+            this.ws.onclose = () => {
+                window.mobileDebug.log('WebSocket connection closed');
+                document.getElementById('send-message').style.backgroundColor = '#dc3545';
+            };
+        } catch (error) {
+            window.mobileDebug.error('Error creating WebSocket: ' + error);
+        }
     }
 
     setupMessageInput() {
@@ -150,14 +157,43 @@ class MobileStepUp {
         const button = document.getElementById('send-message');
         
         button.onclick = () => {
-            if (this.ws && input.value) {
+            window.mobileDebug.log('Send button clicked');
+            window.mobileDebug.log('WebSocket state: ' + this.ws?.readyState);
+            window.mobileDebug.log('Input value: ' + input.value);
+            
+            if (!this.ws) {
+                window.mobileDebug.error('No WebSocket connection');
+                return;
+            }
+            
+            if (this.ws.readyState !== WebSocket.OPEN) {
+                window.mobileDebug.error('WebSocket not open');
+                return;
+            }
+            
+            if (!input.value) {
+                window.mobileDebug.log('No message to send');
+                return;
+            }
+            
+            try {
                 const message = {
                     type: 'message',
                     content: input.value
                 };
-                console.log('Sending message:', message);
+                window.mobileDebug.log('Sending message: ' + JSON.stringify(message));
                 this.ws.send(JSON.stringify(message));
+                window.mobileDebug.log('Message sent successfully');
                 input.value = '';
+            } catch (error) {
+                window.mobileDebug.error('Error sending message: ' + error);
+            }
+        };
+        
+        // Also send on Enter key
+        input.onkeypress = (event) => {
+            if (event.key === 'Enter') {
+                button.click();
             }
         };
     }
