@@ -69,20 +69,34 @@ class Stronghold {
         throw new Error('Container element not found');
     }
 
+    // Close any existing SSE connection
+    if (this.eventSource) {
+        console.log('Closing existing SSE connection');
+        this.eventSource.close();
+        this.eventSource = null;
+    }
+
     try {
         // Try SSE first
-        if (this.eventSource) {
-            console.log('Closing existing SSE connection');
-            this.eventSource.close();
-        }
-
-        console.log('Creating new SSE connection to:', sseUrl);
+        console.log('Attempting SSE connection...');
         this.eventSource = new EventSource(sseUrl);
         
-        return await this.setupSSE();
+        try {
+            return await this.setupSSE();
+        } catch (sseError) {
+            console.log('SSE connection failed:', sseError);
+            // Clean up failed SSE connection
+            if (this.eventSource) {
+                this.eventSource.close();
+                this.eventSource = null;
+            }
+            // Fall back to polling
+            console.log('Falling back to polling...');
+            return await this.setupPolling();
+        }
     } catch (error) {
-        console.error('SSE failed, falling back to polling:', error);
-        return await this.setupPolling();
+        console.error('Fatal connection error:', error);
+        throw error;
     }
   }
 
@@ -129,8 +143,14 @@ class Stronghold {
   async setupPolling() {
     console.log('Setting up polling mechanism');
     try {
-        // Get initial client ID from polling endpoint instead of SSE
-        const response = await fetch('/register-polling');
+        console.log('Calling register-polling endpoint...');  // Add debug log
+        const response = await fetch('/register-polling', {
+            method: 'GET',  // Explicitly set method
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
