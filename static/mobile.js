@@ -6,15 +6,43 @@ class MobileStepUp {
     }
 
     async init() {
-        this.setupAuthButton();
         this.setupQRScanner();
         this.setupMessageInput();
+        this.startQRScanner();  // Start QR scanner immediately
     }
 
-    setupAuthButton() {
-        const button = document.getElementById('register-passkey');
-        button.textContent = "Authenticate with Biometrics";
-        button.onclick = () => this.handleAuthentication();
+    setupQRScanner() {
+        const readerDiv = document.getElementById('reader');
+        readerDiv.style.display = 'block';  // Show scanner immediately
+        this.scanner = new Html5Qrcode("reader");
+    }
+
+    startQRScanner() {
+        window.mobileDebug.log('Starting QR scanner');
+        
+        this.scanner.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            this.handleQRCode.bind(this)
+        ).catch(error => {
+            window.mobileDebug.error('Error starting QR scanner: ' + error);
+            alert('Failed to start camera');
+        });
+    }
+
+    async handleQRCode(stepUpId) {
+        window.mobileDebug.log('QR Code scanned:', stepUpId);
+        this.scanner.stop();
+        document.getElementById('reader').style.display = 'none';
+        this.stepUpId = stepUpId;
+
+        // Show biometric button after QR scan
+        const authButton = document.getElementById('register-passkey');
+        authButton.style.display = 'block';
+        authButton.onclick = () => this.handleAuthentication();
     }
 
     async handleAuthentication() {
@@ -29,7 +57,9 @@ class MobileStepUp {
             
             if (assertion) {
                 window.mobileDebug.log('Successfully authenticated with existing passkey');
-                this.startQRScanner();
+                this.connectWebSocket();
+                document.getElementById('input-container').style.display = 'block';
+                document.getElementById('register-passkey').style.display = 'none';
                 return;
             }
         } catch (error) {
@@ -60,47 +90,15 @@ class MobileStepUp {
                 
                 if (credential) {
                     window.mobileDebug.log('Successfully registered new passkey');
-                    this.startQRScanner();
+                    this.connectWebSocket();
+                    document.getElementById('input-container').style.display = 'block';
+                    document.getElementById('register-passkey').style.display = 'none';
                 }
             } catch (regError) {
                 window.mobileDebug.error('Failed to register passkey: ' + regError);
                 alert('Biometric setup failed');
             }
         }
-    }
-
-    setupQRScanner() {
-        const readerDiv = document.getElementById('reader');
-        this.scanner = new Html5Qrcode("reader");
-    }
-
-    startQRScanner() {
-        // Show the QR scanner container first
-        document.getElementById('reader').style.display = 'block';
-        window.mobileDebug.log('Starting QR scanner');
-        
-        this.scanner.start(
-            { facingMode: "environment" },
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-            },
-            this.handleQRCode.bind(this)
-        ).catch(error => {
-            window.mobileDebug.error('Error starting QR scanner: ' + error);
-            alert('Failed to start camera');
-        });
-    }
-
-    async handleQRCode(stepUpId) {
-        window.mobileDebug.log('QR Code scanned:', stepUpId);
-        this.scanner.stop();
-        document.getElementById('reader').style.display = 'none';
-        this.stepUpId = stepUpId;
-
-        // Connect WebSocket and show input
-        this.connectWebSocket();
-        document.getElementById('input-container').style.display = 'block';
     }
 
     connectWebSocket() {
