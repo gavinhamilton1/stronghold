@@ -137,6 +137,12 @@ class Stronghold {
         // Update AAL level
         const authLevelDiv = document.getElementById('auth-level');
         const downgradeButton = document.getElementById('downgrade-button');
+        const qrContainer = document.getElementById('qr-container');
+        
+        // Remove QR code container if it exists
+        if (qrContainer) {
+            qrContainer.remove();
+        }
         
         authLevelDiv.textContent = 'Auth Level: AAL3';
         authLevelDiv.style.color = '#fd7e14';
@@ -156,6 +162,7 @@ class Stronghold {
         const container = document.createElement('div');
         container.style.textAlign = 'center';
         container.style.padding = '20px';
+        container.id = 'qr-container';  // Add ID for easy removal
         
         // Create QR code container
         const qrContainer = document.createElement('canvas');
@@ -174,7 +181,7 @@ class Stronghold {
         
         console.log('Generating QR code for step-up ID');
         // Generate QR code
-        await QRCode.toCanvas(
+        QRCode.toCanvas(
             qrContainer,
             stepUpId,
             {
