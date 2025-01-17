@@ -4,7 +4,6 @@ class MobileStepUp {
         this.stepUpId = null;
         this.credentialId = null;
         this.setupScanAgainButton();
-        this.setupTestNotificationButton();
         this.registerPushNotifications();
     }
 
@@ -22,23 +21,6 @@ class MobileStepUp {
             // Close existing WebSocket if any
             if (this.ws) {
                 this.ws.close();
-            }
-        };
-    }
-
-    setupTestNotificationButton() {
-        const testButton = document.getElementById('test-notification');
-        testButton.onclick = async () => {
-            try {
-                const response = await fetch('/test-notification', {
-                    method: 'POST'
-                });
-                if (!response.ok) {
-                    throw new Error('Failed to send test notification');
-                }
-                window.mobileDebug.log('Test notification sent');
-            } catch (error) {
-                window.mobileDebug.error('Error sending test notification: ' + error);
             }
         };
     }
