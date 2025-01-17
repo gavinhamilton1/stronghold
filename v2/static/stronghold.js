@@ -128,6 +128,9 @@ class Stronghold {
         this.clientId = data.client_id;
         console.log('Got client ID for polling:', this.clientId);
 
+        // Set up event handlers similar to SSE
+        this.setupPollingEventHandlers();
+        
         // Start polling for updates
         this.startPolling();
         return this.clientId;
@@ -135,6 +138,51 @@ class Stronghold {
         console.error('Error setting up polling:', error);
         throw error;
     }
+  }
+
+  setupPollingEventHandlers() {
+    // This replaces setupEventListeners() for polling mode
+    this.eventHandlers = {
+        'step_up_initiated': (data) => {
+            console.log('Polling: Received step-up initiated:', data);
+            this.handleStepUpInitiated(data);
+        },
+        'auth_complete': () => {
+            console.log('Polling: Received auth complete');
+            const authLevelDiv = document.getElementById('auth-level');
+            const downgradeButton = document.getElementById('downgrade-button');
+            const qrContainer = document.getElementById('qr-container');
+            
+            if (qrContainer) {
+                qrContainer.remove();
+            }
+            
+            authLevelDiv.textContent = 'Auth Level: AAL3';
+            authLevelDiv.style.color = '#fd7e14';
+            downgradeButton.style.display = 'block';
+            localStorage.setItem('authLevel', 'AAL3');
+            this.aalUpdated = true;
+            this.startAALTimer(20);
+        },
+        'mobile_message': (data) => {
+            console.log('Polling: Received mobile message:', data);
+            const messageEl = document.createElement('div');
+            messageEl.style.margin = '10px';
+            messageEl.style.padding = '10px';
+            messageEl.style.background = '#f0f0f0';
+            messageEl.style.borderRadius = '4px';
+            messageEl.style.maxWidth = '80%';
+            messageEl.style.wordBreak = 'break-word';
+            
+            const messageText = document.createElement('p');
+            messageText.style.margin = '0';
+            messageText.textContent = data;
+            messageEl.appendChild(messageText);
+            
+            this.containerElement.appendChild(messageEl);
+            this.containerElement.scrollTop = this.containerElement.scrollHeight;
+        }
+    };
   }
 
   startPolling() {
@@ -165,80 +213,13 @@ class Stronghold {
   }
 
   handlePolledEvent(event) {
-    switch(event.type) {
-        case 'step_up_initiated':
-            this.handleStepUpInitiated(event.data);
-            break;
-        case 'auth_complete':
-            this.handleAuthComplete();
-            break;
-        case 'mobile_message':
-            this.handleMobileMessage(event.data);
-            break;
+    console.log('Handling polled event:', event);
+    const handler = this.eventHandlers[event.type];
+    if (handler) {
+        handler(event.data);
+    } else {
+        console.warn('Unknown event type:', event.type);
     }
-  }
-
-  setupEventListeners() {
-    // Listen for step-up initiation
-    this.eventSource.addEventListener('step_up_initiated', (event) => {
-        console.log('Received step-up initiated event:', event);
-        console.log('Event data:', event.data);
-        try {
-            const stepUpId = JSON.parse(event.data);
-            console.log('Received step-up ID:', stepUpId);
-            this.handleStepUpInitiated(stepUpId);
-        } catch (error) {
-            console.error('Error processing step-up event:', error);
-            console.error('Raw event data:', event.data);
-        }
-    });
-
-    // Listen for auth complete
-    this.eventSource.addEventListener('auth_complete', (event) => {
-        console.log('Received auth complete event');
-        // Update AAL level
-        const authLevelDiv = document.getElementById('auth-level');
-        const downgradeButton = document.getElementById('downgrade-button');
-        const qrContainer = document.getElementById('qr-container');
-        
-        // Remove QR code container if it exists
-        if (qrContainer) {
-            qrContainer.remove();
-        }
-        
-        authLevelDiv.textContent = 'Auth Level: AAL3';
-        authLevelDiv.style.color = '#fd7e14';
-        downgradeButton.style.display = 'block';
-        localStorage.setItem('authLevel', 'AAL3');
-        this.aalUpdated = true;
-
-        // Start 20-second timer instead of 10
-        this.startAALTimer(20);
-    });
-
-    // Listen for mobile messages
-    this.eventSource.addEventListener('mobile_message', (event) => {
-        console.log('Received mobile message:', event);
-        try {
-            const messageEl = document.createElement('div');
-            messageEl.style.margin = '10px';
-            messageEl.style.padding = '10px';
-            messageEl.style.background = '#f0f0f0';
-            messageEl.style.borderRadius = '4px';
-            messageEl.style.maxWidth = '80%';
-            messageEl.style.wordBreak = 'break-word';
-            
-            const messageText = document.createElement('p');
-            messageText.style.margin = '0';
-            messageText.textContent = event.data;
-            messageEl.appendChild(messageText);
-            
-            this.containerElement.appendChild(messageEl);
-            this.containerElement.scrollTop = this.containerElement.scrollHeight;
-        } catch (error) {
-            console.error('Error displaying message:', error);
-        }
-    });
   }
 
   async handleStepUpInitiated(stepUpId) {

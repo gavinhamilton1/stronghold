@@ -135,6 +135,8 @@ async def register_sse(request: Request):
 async def initiate_step_up(client_id: str):
     logger.info(f"🔄 Initiating step-up for client: {client_id}")
     step_up_id = str(uuid.uuid4())
+    
+    # Create event with consistent format for both SSE and polling
     event = {
         "type": "step_up_initiated",
         "data": step_up_id
@@ -150,6 +152,10 @@ async def initiate_step_up(client_id: str):
     
     logger.info(f"📤 Adding event to polling queue for client: {client_id}")
     POLLING_EVENTS[client_id].append(event)
+    
+    # Store mapping between step-up ID and client ID
+    if client_id in CONNECTIONS:
+        CONNECTIONS[step_up_id] = CONNECTIONS[client_id]
     
     return {"status": "success", "step_up_id": step_up_id}
 
