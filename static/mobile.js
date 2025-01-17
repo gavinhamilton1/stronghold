@@ -93,9 +93,27 @@ class MobileStepUp {
     }
 
     connectWebSocket() {
-        this.ws = new WebSocket(`wss://${window.location.host}/ws/${this.stepUpId}`);
-        this.ws.onopen = () => console.log('WebSocket connected');
-        this.ws.onerror = (error) => console.error('WebSocket error:', error);
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/${this.stepUpId}`;
+        console.log('Connecting to WebSocket:', wsUrl);
+        
+        this.ws = new WebSocket(wsUrl);
+        
+        this.ws.onopen = () => {
+            console.log('WebSocket connected successfully');
+        };
+        
+        this.ws.onmessage = (event) => {
+            console.log('WebSocket message received:', event.data);
+        };
+        
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+        
+        this.ws.onclose = () => {
+            console.log('WebSocket connection closed');
+        };
     }
 
     setupMessageInput() {
@@ -104,10 +122,12 @@ class MobileStepUp {
         
         button.onclick = () => {
             if (this.ws && input.value) {
-                this.ws.send(JSON.stringify({
+                const message = {
                     type: 'message',
                     content: input.value
-                }));
+                };
+                console.log('Sending message:', message);
+                this.ws.send(JSON.stringify(message));
                 input.value = '';
             }
         };

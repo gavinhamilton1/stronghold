@@ -129,23 +129,30 @@ async def complete_step_up(client_id: str):
 
 @app.websocket("/ws/{step_up_id}")
 async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
+    print(f"WebSocket connection request for step_up_id: {step_up_id}")
     await websocket.accept()
     WS_CONNECTIONS[step_up_id] = websocket
+    print(f"WebSocket connection accepted for step_up_id: {step_up_id}")
     
     try:
         while True:
             data = await websocket.receive_json()
+            print(f"Received WebSocket message: {data}")
             if data["type"] == "message":
                 # Forward message to SSE connection
                 if step_up_id in CONNECTIONS:
+                    print(f"Forwarding message to SSE connection: {data['content']}")
                     await CONNECTIONS[step_up_id].put({
                         "event": "mobile_message",
                         "data": data["content"]
                     })
-    except:
-        pass
+                else:
+                    print(f"No SSE connection found for step_up_id: {step_up_id}")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
     finally:
         WS_CONNECTIONS.pop(step_up_id, None)
+        print(f"WebSocket connection closed for step_up_id: {step_up_id}")
 
 @app.get("/mobile")
 async def mobile(request: Request):

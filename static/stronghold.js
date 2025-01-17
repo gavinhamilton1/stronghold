@@ -71,18 +71,24 @@ class Stronghold {
 
     // Listen for mobile messages
     this.eventSource.addEventListener('mobile_message', (event) => {
-        console.log('Received mobile message:', event.data);
-        const message = JSON.parse(event.data);
-        
-        // Create message element
-        const messageEl = document.createElement('p');
-        messageEl.textContent = message;
-        messageEl.style.margin = '10px';
-        messageEl.style.padding = '10px';
-        messageEl.style.background = '#f0f0f0';
-        messageEl.style.borderRadius = '4px';
-        
-        this.containerElement.appendChild(messageEl);
+        console.log('Received mobile message event:', event);
+        console.log('Mobile message event data:', event.data);
+        try {
+            const message = JSON.parse(event.data);
+            console.log('Parsed mobile message:', message);
+            
+            // Create message element
+            const messageEl = document.createElement('p');
+            messageEl.textContent = message;
+            messageEl.style.margin = '10px';
+            messageEl.style.padding = '10px';
+            messageEl.style.background = '#f0f0f0';
+            messageEl.style.borderRadius = '4px';
+            
+            this.containerElement.appendChild(messageEl);
+        } catch (error) {
+            console.error('Error handling mobile message:', error);
+        }
     });
   }
 
