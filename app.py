@@ -16,11 +16,14 @@ from pywebpush import webpush, WebPushException
 
 app = FastAPI()
 
-# Mount static files directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files directories for both versions
+app.mount("/v1/static", StaticFiles(directory="v1/static"), name="v1_static")
+app.mount("/v2/static", StaticFiles(directory="v2/static"), name="v2_static")
+app.mount("/static", StaticFiles(directory="v2/static"), name="static")  # Default to v2
 
-# Setup templates
-templates = Jinja2Templates(directory="templates")
+# Setup templates for both versions
+templates_v1 = Jinja2Templates(directory="v1/templates")
+templates_v2 = Jinja2Templates(directory="v2/templates")
 
 # Add CORS middleware
 app.add_middleware(
@@ -53,8 +56,33 @@ VAPID_CLAIMS = {
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Serve the demo page"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    """Serve the latest version (v2) by default"""
+    return templates_v2.TemplateResponse("index.html", {"request": request})
+
+@app.get("/v1", response_class=HTMLResponse)
+async def home_v1(request: Request):
+    """Serve v1 page"""
+    return templates_v1.TemplateResponse("index.html", {"request": request})
+
+@app.get("/v2", response_class=HTMLResponse)
+async def home_v2(request: Request):
+    """Serve v2 page"""
+    return templates_v2.TemplateResponse("index.html", {"request": request})
+
+@app.get("/v1/mobile", response_class=HTMLResponse)
+async def mobile_v1(request: Request):
+    """Serve the v1 mobile page"""
+    return templates_v1.TemplateResponse("mobile.html", {"request": request})
+
+@app.get("/v2/mobile", response_class=HTMLResponse)
+async def mobile_v2(request: Request):
+    """Serve the v2 mobile page"""
+    return templates_v2.TemplateResponse("mobile.html", {"request": request})
+
+@app.get("/mobile", response_class=HTMLResponse)
+async def mobile(request: Request):
+    """Serve the latest version (v2) mobile page"""
+    return templates_v2.TemplateResponse("mobile.html", {"request": request})
 
 @app.get("/register-sse")
 async def register_sse(request: Request):
@@ -197,11 +225,6 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
     finally:
         WS_CONNECTIONS.pop(step_up_id, None)
         logger.info(f"👋 WebSocket connection closed for step_up_id: {step_up_id}")
-
-@app.get("/mobile")
-async def mobile(request: Request):
-    """Serve the mobile page"""
-    return templates.TemplateResponse("mobile.html", {"request": request})
 
 @app.route('/register-push', methods=['POST'])
 def register_push():
