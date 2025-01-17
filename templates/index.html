@@ -62,7 +62,7 @@
 <body>
     <div class="container">
         <h1>Stronghold Step-up Demo</h1>
-        <div style="color: #666; margin-bottom: 10px;">Version 0.3.1</div>
+        <div style="color: #666; margin-bottom: 10px;">Version 0.3.3</div>
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
             <div id="auth-level" style="color: #28a745; font-weight: bold;">Auth Level: AAL2</div>
             <button id="downgrade-button" 
@@ -74,7 +74,6 @@
         <div class="controls">
             <button onclick="startStepUp()">Start Step-up</button>
             <button onclick="completeStepUp()">Complete Step-up</button>
-            <button onclick="sendTestNotification()">Send Test Notification</button>
         </div>
         <div id="step-up-container"></div>
         <div id="status"></div>
@@ -86,20 +85,6 @@
         function showStatus(message, type) {
             statusDiv.textContent = message;
             statusDiv.className = `status ${type}`;
-        }
-
-        async function sendTestNotification() {
-            try {
-                const response = await fetch('/test-notification', {
-                    method: 'POST'
-                });
-                if (!response.ok) {
-                    throw new Error('Failed to send notification');
-                }
-                showStatus('Notification sent successfully', 'success');
-            } catch (error) {
-                showStatus('Error sending notification: ' + error.message, 'error');
-            }
         }
     </script>
 

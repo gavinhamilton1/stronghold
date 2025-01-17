@@ -4,7 +4,6 @@ class MobileStepUp {
         this.stepUpId = null;
         this.credentialId = null;
         this.setupScanAgainButton();
-        this.registerPushNotifications();
     }
 
     setupScanAgainButton() {
@@ -254,10 +253,15 @@ class MobileStepUp {
                 throw new Error('Notification permission denied');
             }
 
+            // Get VAPID public key from server
+            const response = await fetch('/vapid-public-key');
+            const data = await response.json();
+            const vapidPublicKey = data.publicKey;
+
             // Subscribe to push notifications
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: this.urlBase64ToUint8Array('YOUR_PUBLIC_VAPID_KEY')
+                applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
             });
 
             // Send subscription to server

@@ -44,6 +44,13 @@ push_subscriptions = {}
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Add these constants at the top
+VAPID_PRIVATE_KEY = "your_generated_private_key"
+VAPID_PUBLIC_KEY = "your_generated_public_key"
+VAPID_CLAIMS = {
+    "sub": "mailto:gavin@gbag.co.uk"  # Change this to your email
+}
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Serve the demo page"""
@@ -203,10 +210,8 @@ def send_push_notification(message):
             webpush(
                 subscription_info=subscription,
                 data=message,
-                vapid_private_key="YOUR_VAPID_PRIVATE_KEY",
-                vapid_claims={
-                    "sub": "mailto:your@email.com"
-                }
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims=VAPID_CLAIMS
             )
         except WebPushException as e:
             print("Push notification failed:", e)
@@ -223,6 +228,11 @@ async def test_notification():
             status_code=500,
             content={"error": str(e)}
         )
+
+@app.get("/vapid-public-key")
+async def get_vapid_public_key():
+    """Endpoint to get the VAPID public key"""
+    return {"publicKey": VAPID_PUBLIC_KEY}
 
 if __name__ == "__main__":
     import uvicorn
