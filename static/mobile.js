@@ -98,11 +98,6 @@ class MobileStepUp {
         document.getElementById('reader').style.display = 'none';
         this.stepUpId = stepUpId;
 
-        // Update auth level
-        const authLevelDiv = document.getElementById('auth-level');
-        authLevelDiv.textContent = 'Auth Level: AAL3';
-        authLevelDiv.style.color = '#fd7e14';  // Bootstrap orange
-
         // Connect WebSocket and show input
         this.connectWebSocket();
         document.getElementById('input-container').style.display = 'block';

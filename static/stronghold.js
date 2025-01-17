@@ -53,7 +53,6 @@ class Stronghold {
         console.log('Received step-up initiated event:', event);
         console.log('Event data:', event.data);
         try {
-            // Parse the JSON string to remove quotes
             const stepUpId = JSON.parse(event.data);
             console.log('Received step-up ID:', stepUpId);
             this.handleStepUpInitiated(stepUpId);
@@ -72,32 +71,15 @@ class Stronghold {
     // Listen for mobile messages
     this.eventSource.addEventListener('mobile_message', (event) => {
         console.log('Received mobile message event:', event);
-        console.log('Mobile message event data:', event.data);
-        try {
-            // Create message element
-            const messageEl = document.createElement('div');
-            messageEl.style.margin = '10px';
-            messageEl.style.padding = '10px';
-            messageEl.style.background = '#f0f0f0';
-            messageEl.style.borderRadius = '4px';
-            messageEl.style.maxWidth = '80%';
-            messageEl.style.wordBreak = 'break-word';
-            
-            // Add message text
-            const messageText = document.createElement('p');
-            messageText.style.margin = '0';
-            messageText.textContent = event.data; // Use event.data directly
-            messageEl.appendChild(messageText);
-            
-            // Add to container
-            this.containerElement.appendChild(messageEl);
-            
-            // Scroll to bottom
-            this.containerElement.scrollTop = this.containerElement.scrollHeight;
-        } catch (error) {
-            console.error('Error handling mobile message:', error);
-            console.error('Raw event data:', event.data);
+        if (!this.aalUpdated) {
+            // Update AAL level on first message (indicates successful linking)
+            const authLevelDiv = document.getElementById('auth-level');
+            authLevelDiv.textContent = 'Auth Level: AAL3';
+            authLevelDiv.style.color = '#fd7e14';  // Bootstrap orange
+            this.aalUpdated = true;
         }
+        
+        // Rest of the message handling...
     });
   }
 
