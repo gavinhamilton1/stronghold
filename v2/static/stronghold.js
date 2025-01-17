@@ -129,8 +129,8 @@ class Stronghold {
   async setupPolling() {
     console.log('Setting up polling mechanism');
     try {
-        // Get initial client ID
-        const response = await fetch('/register-sse');
+        // Get initial client ID from polling endpoint instead of SSE
+        const response = await fetch('/register-polling');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

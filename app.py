@@ -265,6 +265,13 @@ async def get_vapid_public_key():
     """Endpoint to get the VAPID public key"""
     return {"publicKey": VAPID_PUBLIC_KEY}
 
+@app.get("/register-polling")
+async def register_polling():
+    """Endpoint for registering polling clients"""
+    client_id = str(uuid.uuid4())
+    logger.info(f"🔄 Registering polling client: {client_id}")
+    return {"client_id": client_id}
+
 @app.get("/poll-updates/{client_id}")
 async def poll_updates(client_id: str):
     """Endpoint for polling updates when SSE is blocked"""
