@@ -52,8 +52,12 @@ class MobileStepUp {
                     rpId: window.location.hostname,
                     userVerification: "required",
                     authenticatorAttachment: "platform",
-                    requireResidentKey: true,
-                    residentKey: "required"
+                    authenticatorSelection: {
+                        authenticatorAttachment: "platform",
+                        userVerification: "required",
+                        requireResidentKey: true,
+                        residentKey: "required"
+                    }
                 }
             });
             
@@ -84,11 +88,15 @@ class MobileStepUp {
                     pubKeyCredParams: [{alg: -7, type: "public-key"}],
                     authenticatorSelection: {
                         authenticatorAttachment: "platform",
-                        requireResidentKey: true,
                         userVerification: "required",
+                        requireResidentKey: true,
                         residentKey: "required"
                     },
-                    attestation: "direct"
+                    attestation: "direct",
+                    extensions: {
+                        credProps: true,
+                        uvm: true
+                    }
                 };
 
                 const credential = await navigator.credentials.create({
