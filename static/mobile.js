@@ -2,8 +2,6 @@ class MobileStepUp {
     constructor() {
         this.scanner = null;
         this.stepUpId = null;
-        this.passkey = null;
-        this.ws = null;
         this.credentialId = null;
     }
 
@@ -86,6 +84,8 @@ class MobileStepUp {
             });
 
             if (assertion) {
+                // Show QR scanner after successful authentication
+                document.getElementById('reader').style.display = 'block';
                 this.startQRScanner();
             }
         } catch (error) {
@@ -95,6 +95,7 @@ class MobileStepUp {
     }
 
     setupQRScanner() {
+        const readerDiv = document.getElementById('reader');
         this.scanner = new Html5Qrcode("reader");
     }
 
@@ -110,31 +111,14 @@ class MobileStepUp {
     }
 
     async handleQRCode(stepUpId) {
+        console.log('QR Code scanned:', stepUpId);
         this.scanner.stop();
+        document.getElementById('reader').style.display = 'none';
         this.stepUpId = stepUpId;
-        
-        // Use passkey to authenticate
-        try {
-            const assertion = await navigator.credentials.get({
-                publicKey: {
-                    challenge: new Uint8Array(32),
-                    allowCredentials: [{
-                        id: this.passkey.rawId,
-                        type: 'public-key'
-                    }]
-                }
-            });
 
-            // Connect to WebSocket
-            this.connectWebSocket();
-            
-            // Show input field
-            document.getElementById('input-container').style.display = 'block';
-            
-        } catch (error) {
-            console.error('Authentication failed:', error);
-            alert('Biometric authentication failed');
-        }
+        // Connect WebSocket and show input
+        this.connectWebSocket();
+        document.getElementById('input-container').style.display = 'block';
     }
 
     connectWebSocket() {
