@@ -1,0 +1,13 @@
+Run locally with:
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start server
+uvicorn app:app --reload
+
+Open the app in your browser:
+http://localhost:8000/
+
+Open on mobile:
+http://stronghold.onrender.com/mobile
