@@ -196,6 +196,29 @@ class Stronghold {
     });
   }
 
+  setupPollingEventHandlers() {
+    console.log('Setting up polling event handlers');
+    this.eventHandlers = {
+        'step_up_initiated': (data) => {
+            console.log('Polling: Received step-up initiated:', data);
+            this.handleStepUpInitiated(data);
+        },
+        'auth_complete': () => {
+            console.log('Polling: Received auth complete');
+            this.handleAuthComplete();  // Use the shared handler
+        },
+        'mobile_message': (data) => {
+            console.log('Polling: Received mobile message:', data);
+            // Clear the container if it's the first message after auth
+            if (this.containerElement.children.length === 1 && 
+                this.containerElement.children[0].textContent === 'Messages will appear here...') {
+                this.containerElement.innerHTML = '';
+            }
+            this.handleMobileMessage(data);
+        }
+    };
+  }
+
   handleAuthComplete() {
     console.log('Processing auth complete');
     // Update AAL level
@@ -232,52 +255,6 @@ class Stronghold {
     this.containerElement.innerHTML = '<div style="padding: 20px;">Messages will appear here...</div>';
     
     console.log('Keeping polling active for messages');
-  }
-
-  setupPollingEventHandlers() {
-    console.log('Setting up polling event handlers');
-    this.eventHandlers = {
-        'step_up_initiated': (data) => {
-            console.log('Polling: Received step-up initiated:', data);
-            this.handleStepUpInitiated(data);
-        },
-        'auth_complete': () => {
-            console.log('Polling: Received auth complete');
-            // Handle auth complete but don't stop polling
-            const authLevelDiv = document.getElementById('auth-level');
-            const downgradeButton = document.getElementById('downgrade-button');
-            
-            // Remove QR code container if it exists
-            const qrContainer = document.getElementById('qr-container');
-            if (qrContainer) {
-                console.log('Removing QR code container');
-                qrContainer.remove();
-            }
-            
-            console.log('Updating auth level display');
-            authLevelDiv.textContent = 'Auth Level: AAL3';
-            authLevelDiv.style.color = '#fd7e14';
-            downgradeButton.style.display = 'block';
-            localStorage.setItem('authLevel', 'AAL3');
-            this.aalUpdated = true;
-
-            console.log('Starting AAL timer');
-            this.startAALTimer(20);
-            
-            // Only close SSE if it exists
-            if (this.eventSource) {
-                console.log('Closing SSE connection');
-                this.eventSource.close();
-                this.eventSource = null;
-            }
-            
-            console.log('Keeping polling active for messages');
-        },
-        'mobile_message': (data) => {
-            console.log('Polling: Received mobile message:', data);
-            this.handleMobileMessage(data);
-        }
-    };
   }
 
   handleMobileMessage(data) {
