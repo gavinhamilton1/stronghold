@@ -243,18 +243,11 @@ class Stronghold {
 
     console.log('Starting AAL timer');
     this.startAALTimer(20);
-
-    // Only close SSE, keep polling active for messages
-    if (this.eventSource) {
-        console.log('Closing SSE connection');
-        this.eventSource.close();
-        this.eventSource = null;
-    }
     
     // Create a new container for messages
     this.containerElement.innerHTML = '<div style="padding: 20px;">Messages will appear here...</div>';
     
-    console.log('Keeping polling active for messages');
+    console.log('Keeping connections active for messages');
   }
 
   handleMobileMessage(data) {
