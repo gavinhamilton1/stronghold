@@ -195,44 +195,45 @@ class MobileStepUp {
         const input = document.getElementById('message-input');
         const button = document.getElementById('send-message');
         
-        button.onclick = () => {
+        button.onclick = async () => {
             window.mobileDebug.log('Send button clicked');
-            window.mobileDebug.log('WebSocket state: ' + this.ws?.readyState);
-            window.mobileDebug.log('Input value: ' + input.value);
-            
-            if (!this.ws) {
-                window.mobileDebug.error('No WebSocket connection');
-                return;
-            }
-            
-            if (this.ws.readyState !== WebSocket.OPEN) {
-                window.mobileDebug.error('WebSocket not open');
-                return;
-            }
             
             if (!input.value) {
                 window.mobileDebug.log('No message to send');
                 return;
             }
-            
+
             try {
-                const message = {
-                    type: 'message',
-                    content: input.value
-                };
-                window.mobileDebug.log('Sending message: ' + JSON.stringify(message));
-                this.ws.send(JSON.stringify(message));
+                // Send via both WebSocket and HTTP for redundancy
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    window.mobileDebug.log('Sending via WebSocket');
+                    this.ws.send(JSON.stringify({
+                        type: 'message',
+                        content: input.value
+                    }));
+                }
+
+                // Also send via HTTP endpoint
+                window.mobileDebug.log('Sending via HTTP endpoint');
+                const response = await fetch(`/send-message/${this.stepUpId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type: 'message',
+                        content: input.value
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 window.mobileDebug.log('Message sent successfully');
                 input.value = '';
             } catch (error) {
                 window.mobileDebug.error('Error sending message: ' + error);
-            }
-        };
-        
-        // Also send on Enter key
-        input.onkeypress = (event) => {
-            if (event.key === 'Enter') {
-                button.click();
             }
         };
     }

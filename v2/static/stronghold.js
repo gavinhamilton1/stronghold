@@ -281,6 +281,12 @@ class Stronghold {
   handleMobileMessage(data) {
     console.log('Processing mobile message:', data);
     try {
+        if (!this.containerElement) {
+            console.error('Container element not found');
+            return;
+        }
+
+        // Create message element
         const messageEl = document.createElement('div');
         messageEl.style.margin = '10px';
         messageEl.style.padding = '10px';
@@ -291,13 +297,8 @@ class Stronghold {
         
         const messageText = document.createElement('p');
         messageText.style.margin = '0';
-        messageText.textContent = data;
+        messageText.textContent = typeof data === 'string' ? data : JSON.stringify(data);
         messageEl.appendChild(messageText);
-        
-        if (!this.containerElement) {
-            console.error('Container element not found');
-            return;
-        }
         
         console.log('Adding message to container:', this.containerElement.id);
         this.containerElement.appendChild(messageEl);
