@@ -228,7 +228,9 @@ class Stronghold {
         this.eventSource = null;
     }
     
-    // Don't stop polling - we need it for messages
+    // Create a new container for messages
+    this.containerElement.innerHTML = '<div style="padding: 20px;">Messages will appear here...</div>';
+    
     console.log('Keeping polling active for messages');
   }
 
