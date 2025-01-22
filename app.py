@@ -307,6 +307,37 @@ async def poll_updates(client_id: str):
         logger.info(f"📤 Sending polled event: {event}")
     return {"events": events}
 
+@app.post("/send-message/{step_up_id}")
+async def send_message(step_up_id: str, message: dict):
+    """Send a message to the browser from an external app"""
+    logger.info(f"📱 Received external message for step_up_id: {step_up_id}")
+    
+    # Get the client ID from the mapping
+    client_id = STEP_UP_TO_CLIENT.get(step_up_id)
+    if not client_id:
+        logger.error(f"❌ No client_id found for step_up_id: {step_up_id}")
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Step-up ID not found"}
+        )
+
+    # Add message to polling queue
+    logger.info(f"➡️ Adding message to polling queue for client: {client_id}")
+    POLLING_EVENTS[client_id].append({
+        "type": "mobile_message",
+        "data": message["content"]
+    })
+    
+    # Send via SSE if available
+    if client_id in CONNECTIONS:
+        logger.info(f"➡️ Sending message via SSE for client: {client_id}")
+        await CONNECTIONS[client_id].put({
+            "event": "mobile_message",
+            "data": message["content"]
+        })
+    
+    return {"status": "success"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 
