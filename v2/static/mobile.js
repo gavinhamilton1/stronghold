@@ -203,18 +203,22 @@ class MobileStepUp {
                 return;
             }
 
+            const messageContent = input.value;
             try {
-                // Send via both WebSocket and HTTP for redundancy
+                // Try WebSocket first
                 if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                     window.mobileDebug.log('Sending via WebSocket');
                     this.ws.send(JSON.stringify({
                         type: 'message',
-                        content: input.value
+                        content: messageContent
                     }));
+                    window.mobileDebug.log('Message sent successfully via WebSocket');
+                    input.value = '';
+                    return;  // Exit early if WebSocket succeeds
                 }
 
-                // Also send via HTTP endpoint
-                window.mobileDebug.log('Sending via HTTP endpoint');
+                // Fall back to HTTP if WebSocket not available or failed
+                window.mobileDebug.log('WebSocket not available, falling back to HTTP');
                 const response = await fetch(`/send-message/${this.stepUpId}`, {
                     method: 'POST',
                     headers: {
@@ -222,7 +226,7 @@ class MobileStepUp {
                     },
                     body: JSON.stringify({
                         type: 'message',
-                        content: input.value
+                        content: messageContent
                     })
                 });
 
@@ -230,7 +234,7 @@ class MobileStepUp {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
-                window.mobileDebug.log('Message sent successfully');
+                window.mobileDebug.log('Message sent successfully via HTTP');
                 input.value = '';
             } catch (error) {
                 window.mobileDebug.error('Error sending message: ' + error);
