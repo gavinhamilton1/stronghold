@@ -5,12 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stronghold Step-up Demo</title>
     <script src="/v2/static/qrcode.min.js"></script>
+    <!-- Ionic Core -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
     <style>
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+        }
+        .content {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .active {
+            display: block;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
         .container {
             display: flex;
@@ -62,14 +85,50 @@
 <body>
     <div class="container">
         <h1>Stronghold Step-up Demo</h1>
-        <div style="color: #666; margin-bottom: 10px;">Version 2.0.23</div>
-        <div style="margin-bottom: 20px; text-align: center;">
-            <div style="margin-bottom: 10px;">Scan to open mobile page:</div>
-            <canvas id="mobile-qr"></canvas>
-            <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                https://stronghold.onrender.com/mobile
+        <div style="color: #666; margin-bottom: 10px;">Version 2.0.27</div>
+        
+        <!-- Ionic Segment Control -->
+        <ion-segment id="selector" style="max-width: 500px; margin: 20px auto;">
+            <ion-segment-button value="qr">
+                <ion-label>QR Code</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="pin-selector">
+                <ion-label>Pin Selector</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="pin-entry">
+                <ion-label>Pin Entry</ion-label>
+            </ion-segment-button>
+        </ion-segment>
+        
+        <!-- Content Sections -->
+        <div id="qr-code" class="content active">
+            <div style="margin-bottom: 20px; text-align: center;">
+                <div style="margin-bottom: 10px;">Scan to open mobile page:</div>
+                <canvas id="mobile-qr"></canvas>
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                    https://stronghold.onrender.com/mobile
+                </div>
+            </div>
+            <div id="step-up-container"></div>
+        </div>
+        
+        <div id="pin-selector" class="content">
+            <div class="input-group">
+                <h3>Select PIN</h3>
+                <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
+                    Generating...
+                </div>
             </div>
         </div>
+        
+        <div id="pin-entry" class="content">
+            <div class="input-group">
+                <h3>Enter PIN</h3>
+                <input type="number" placeholder="Enter 6-digit PIN" min="0" max="999999">
+                <button onclick="handlePinEntry()">Verify</button>
+            </div>
+        </div>
+
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
             <div id="auth-level" style="color: #28a745; font-weight: bold;">Auth Level: AAL2</div>
             <button id="downgrade-button" 
@@ -82,7 +141,6 @@
             <button onclick="startStepUp()">Start Step-up</button>
             <button onclick="completeStepUp()">Complete Step-up</button>
         </div>
-        <div id="step-up-container"></div>
         <div id="status"></div>
     </div>
 
@@ -157,6 +215,60 @@
                 }
             );
         });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const segment = document.getElementById("selector");
+
+            // Sections
+            const sections = {
+                "qr": document.getElementById("qr-code"),
+                "pin-selector": document.getElementById("pin-selector"),
+                "pin-entry": document.getElementById("pin-entry")
+            };
+
+            // Generate random 5-digit number
+            function generateRandomPin() {
+                return Math.floor(10000 + Math.random() * 90000);
+            }
+
+            // Update the segment change handler
+            segment.addEventListener("ionChange", function (event) {
+                let selectedValue = event.detail.value;
+
+                // Hide all sections
+                Object.values(sections).forEach(section => section.classList.remove("active"));
+
+                // Show selected section
+                if (sections[selectedValue]) {
+                    sections[selectedValue].classList.add("active");
+                    
+                    // Generate new PIN when pin-selector is chosen
+                    if (selectedValue === 'pin-selector') {
+                        const pin = generateRandomPin();
+                        document.getElementById('browser-pin').textContent = pin;
+                        // Send PIN to server
+                        fetch('/update-pin', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ pin })
+                        }).catch(error => console.error('Error updating PIN:', error));
+                    }
+                }
+            });
+        });
+
+        function handlePinSelector() {
+            // Add your pin selector logic here
+            console.log('Pin selector submitted');
+        }
+
+        function handlePinEntry() {
+            // Add your pin entry logic here
+            console.log('Pin entry submitted');
+        }
     </script>
 </body>
 </html> 

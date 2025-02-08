@@ -4,6 +4,7 @@ class MobileStepUp {
         this.stepUpId = null;
         this.credentialId = null;
         this.setupScanAgainButton();
+        this.setupSegmentControl();
     }
 
     setupScanAgainButton() {
@@ -25,10 +26,12 @@ class MobileStepUp {
     }
 
     async init() {
-        // Start camera immediately
-        this.setupQRScanner();
+        // Start camera immediately if we're in QR section
+        if (document.querySelector('ion-segment').value === 'qr') {
+            this.setupQRScanner();
+            this.startQRScanner();
+        }
         this.setupMessageInput();
-        this.startQRScanner();
     }
 
     setupQRScanner() {
@@ -293,6 +296,91 @@ class MobileStepUp {
             outputArray[i] = rawData.charCodeAt(i);
         }
         return outputArray;
+    }
+
+    setupSegmentControl() {
+        const segment = document.getElementById('selector');
+        const sections = {
+            'qr': document.getElementById('qr-code'),
+            'pin-selector': document.getElementById('pin-selector'),
+            'pin-entry': document.getElementById('pin-entry')
+        };
+
+        segment.addEventListener('ionChange', async (event) => {
+            // Hide all sections
+            Object.values(sections).forEach(section => section.classList.remove('active'));
+            
+            // Show selected section
+            const selectedValue = event.detail.value;
+            if (sections[selectedValue]) {
+                sections[selectedValue].classList.add('active');
+            }
+
+            // Handle section-specific initialization
+            if (selectedValue === 'qr') {
+                this.setupQRScanner();
+                this.startQRScanner();
+            } else if (selectedValue === 'pin-selector') {
+                await this.loadPinOptions();
+            }
+        });
+    }
+
+    async loadPinOptions() {
+        const pinOptions = document.getElementById('pin-options');
+        window.mobileDebug.log('Loading PIN options');
+        
+        try {
+            // Get PIN options from server
+            const response = await fetch('/get-pin-options');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const { pins } = await response.json();
+            
+            // Create buttons for each PIN
+            pinOptions.innerHTML = pins.map(pin => `
+                <button class="pin-option" onclick="mobileStepUp.handlePinSelection(${pin})" style="color: black;">
+                    ${String(pin).padStart(5, '0')}
+                </button>
+            `).join('');
+            
+            window.mobileDebug.log('PIN options loaded');
+        } catch (error) {
+            window.mobileDebug.error('Error loading PIN options: ' + error);
+            pinOptions.innerHTML = '<div style="color: red;">Error loading PIN options. Please try again.</div>';
+        }
+    }
+
+    async handlePinSelection(selectedPin) {
+        window.mobileDebug.log('PIN selected: ' + selectedPin);
+        
+        try {
+            const response = await fetch('/verify-pin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ pin: selectedPin })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.matched) {
+                window.mobileDebug.log('PIN verified successfully');
+                this.stepUpId = data.step_up_id;
+                await this.handleAuthentication();
+            } else {
+                window.mobileDebug.error('Incorrect PIN selected');
+                // Optionally reload options after a delay
+                setTimeout(() => this.loadPinOptions(), 1000);
+            }
+        } catch (error) {
+            window.mobileDebug.error('Error verifying PIN: ' + error);
+        }
     }
 }
 

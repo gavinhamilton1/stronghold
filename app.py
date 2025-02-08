@@ -13,6 +13,7 @@ import json
 from fastapi.logger import logger
 import logging
 from pywebpush import webpush, WebPushException
+import random
 
 app = FastAPI()
 
@@ -59,6 +60,9 @@ POLLING_EVENTS = defaultdict(lambda: deque(maxlen=100))
 
 # Add a mapping dictionary for step-up IDs to client IDs
 STEP_UP_TO_CLIENT = {}
+
+# Add at the top with other global variables
+CURRENT_PIN = None
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -337,6 +341,72 @@ async def send_message(step_up_id: str, message: dict):
         })
     
     return {"status": "success"}
+
+@app.get("/get-current-pin")
+async def get_current_pin():
+    """Get the current valid PIN"""
+    global CURRENT_PIN
+    if CURRENT_PIN is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "No active PIN"}
+        )
+    return {"pin": CURRENT_PIN}
+
+@app.post("/verify-pin")
+async def verify_pin(pin_data: dict):
+    """Verify a PIN and return a step-up ID if correct"""
+    global CURRENT_PIN
+    
+    if CURRENT_PIN is None:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "No active PIN"}
+        )
+
+    submitted_pin = pin_data.get("pin")
+    if submitted_pin == CURRENT_PIN:
+        # Generate a new step-up ID like we do for QR codes
+        step_up_id = str(uuid.uuid4())
+        client_id = str(uuid.uuid4())  # Generate a new client ID
+        STEP_UP_TO_CLIENT[step_up_id] = client_id
+        
+        return {
+            "matched": True,
+            "step_up_id": step_up_id
+        }
+    
+    return {
+        "matched": False
+    }
+
+@app.post("/update-pin")
+async def update_pin(pin_data: dict):
+    """Update the current valid PIN"""
+    global CURRENT_PIN
+    CURRENT_PIN = pin_data.get("pin")
+    return {"status": "success"}
+
+@app.get("/get-pin-options")
+async def get_pin_options():
+    """Get 4 PIN options, including the valid PIN in a random position"""
+    global CURRENT_PIN
+    if CURRENT_PIN is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "No active PIN"}
+        )
+    
+    # Generate 3 additional random PINs
+    pins = {CURRENT_PIN}  # Use set to avoid duplicates
+    while len(pins) < 4:
+        pins.add(random.randint(10000, 99999))
+    
+    # Convert to list and shuffle
+    pin_options = list(pins)
+    random.shuffle(pin_options)
+    
+    return {"pins": pin_options}
 
 if __name__ == "__main__":
     import uvicorn
