@@ -65,9 +65,11 @@ class MobileStepUp {
         // Show scan again button
         document.getElementById('scan-again').style.display = 'block';
 
+        window.mobileDebug.log('Connecting WebSocket...');
         // Connect WebSocket before authentication
         this.connectWebSocket();
 
+        window.mobileDebug.log('Starting authentication...');
         // Immediately start authentication
         await this.handleAuthentication();
     }
@@ -164,34 +166,22 @@ class MobileStepUp {
     }
 
     connectWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/${this.stepUpId}`;
-        window.mobileDebug.log('Connecting to WebSocket: ' + wsUrl);
+        window.mobileDebug.log(`Setting up WebSocket for step_up_id: ${this.stepUpId}`);
+        this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.stepUpId}`);
         
-        try {
-            this.ws = new WebSocket(wsUrl);
-            
-            this.ws.onopen = () => {
-                window.mobileDebug.log('WebSocket connected successfully');
-                document.getElementById('send-message').style.backgroundColor = '#28a745';
-            };
-            
-            this.ws.onmessage = (event) => {
-                window.mobileDebug.log('WebSocket message received: ' + event.data);
-            };
-            
-            this.ws.onerror = (error) => {
-                window.mobileDebug.error('WebSocket error: ' + error);
-                document.getElementById('send-message').style.backgroundColor = '#dc3545';
-            };
-            
-            this.ws.onclose = () => {
-                window.mobileDebug.log('WebSocket connection closed');
-                document.getElementById('send-message').style.backgroundColor = '#dc3545';
-            };
-        } catch (error) {
-            window.mobileDebug.error('Error creating WebSocket: ' + error);
-        }
+        this.ws.onopen = () => {
+            window.mobileDebug.log('WebSocket connection established');
+            document.getElementById('input-container').style.display = 'block';
+        };
+        
+        this.ws.onclose = () => {
+            window.mobileDebug.log('WebSocket connection closed');
+            document.getElementById('input-container').style.display = 'none';
+        };
+        
+        this.ws.onerror = (error) => {
+            window.mobileDebug.error('WebSocket error: ' + error);
+        };
     }
 
     setupMessageInput() {

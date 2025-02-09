@@ -8,7 +8,6 @@ from typing import Dict
 import uuid
 import asyncio
 from collections import defaultdict, deque
-from pathlib import Path
 import json
 from fastapi.logger import logger
 import logging
@@ -17,14 +16,11 @@ import random
 
 app = FastAPI()
 
-# Mount static files directories for both versions
-app.mount("/v1/static", StaticFiles(directory="v1/static"), name="v1_static")
-app.mount("/v2/static", StaticFiles(directory="v2/static"), name="v2_static")
-app.mount("/static", StaticFiles(directory="v2/static"), name="static")  # Default to v2
+# Mount static files directory
+app.mount("/static", StaticFiles(directory="v2/static"), name="static")
 
-# Setup templates for both versions
-templates_v1 = Jinja2Templates(directory="v1/templates")
-templates_v2 = Jinja2Templates(directory="v2/templates")
+# Setup templates
+templates = Jinja2Templates(directory="v2/templates")
 
 # Add CORS middleware
 app.add_middleware(
@@ -52,7 +48,7 @@ logger = logging.getLogger(__name__)
 VAPID_PRIVATE_KEY = "your_generated_private_key"
 VAPID_PUBLIC_KEY = "your_generated_public_key"
 VAPID_CLAIMS = {
-    "sub": "mailto:gavin@gbag.co.uk"  # Change this to your email
+    "sub": "mailto:gavin@gbag.co.uk"
 }
 
 # Add this with other global variables
@@ -66,33 +62,13 @@ CURRENT_PIN = None
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Redirect root to v2"""
-    return RedirectResponse(url="/v2")
-
-@app.get("/v1", response_class=HTMLResponse)
-async def home_v1(request: Request):
-    """Serve v1 page"""
-    return templates_v1.TemplateResponse("index.html", {"request": request})
-
-@app.get("/v2", response_class=HTMLResponse)
-async def home_v2(request: Request):
-    """Serve v2 page"""
-    return templates_v2.TemplateResponse("index.html", {"request": request})
-
-@app.get("/v1/mobile", response_class=HTMLResponse)
-async def mobile_v1(request: Request):
-    """Serve the v1 mobile page"""
-    return templates_v1.TemplateResponse("mobile.html", {"request": request})
-
-@app.get("/v2/mobile", response_class=HTMLResponse)
-async def mobile_v2(request: Request):
-    """Serve the v2 mobile page"""
-    return templates_v2.TemplateResponse("mobile.html", {"request": request})
+    """Serve main page"""
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/mobile", response_class=HTMLResponse)
 async def mobile(request: Request):
-    """Redirect mobile to v2/mobile"""
-    return RedirectResponse(url="/v2/mobile")
+    """Serve mobile page"""
+    return templates.TemplateResponse("mobile.html", {"request": request})
 
 @app.get("/register-sse")
 async def register_sse(request: Request):

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stronghold Step-up Demo</title>
-    <script src="/v2/static/qrcode.min.js"></script>
+    <script src="/static/qrcode.min.js"></script>
     <!-- Ionic Core -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
@@ -85,7 +85,7 @@
 <body>
     <div class="container">
         <h1>Stronghold Step-up Demo</h1>
-        <div style="color: #666; margin-bottom: 10px;">Version 2.0.35</div>
+        <div style="color: #666; margin-bottom: 10px;">Version 2.0.37</div>
         
         <!-- Ionic Segment Control -->
         <ion-segment id="selector" style="max-width: 500px; margin: 20px auto;">
@@ -94,9 +94,6 @@
             </ion-segment-button>
             <ion-segment-button value="pin-selector">
                 <ion-label>Pin Selector</ion-label>
-            </ion-segment-button>
-            <ion-segment-button value="pin-entry">
-                <ion-label>Pin Entry</ion-label>
             </ion-segment-button>
         </ion-segment>
         
@@ -116,14 +113,6 @@
                 <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
                     Generating...
                 </div>
-            </div>
-        </div>
-        
-        <div id="pin-entry" class="content">
-            <div class="input-group">
-                <h3>Enter PIN</h3>
-                <input type="number" placeholder="Enter 6-digit PIN" min="0" max="999999">
-                <button onclick="handlePinEntry()">Verify</button>
             </div>
         </div>
 
@@ -151,7 +140,7 @@
         }
     </script>
 
-    <script src="/v2/static/stronghold.js"></script>
+    <script src="/static/stronghold.js"></script>
 
     <script>
         let currentClientId = null;
@@ -204,8 +193,7 @@
             // Sections
             const sections = {
                 "qr": document.getElementById("qr-code"),
-                "pin-selector": document.getElementById("pin-selector"),
-                "pin-entry": document.getElementById("pin-entry")
+                "pin-selector": document.getElementById("pin-selector")
             };
 
             // Generate random 5-digit number
@@ -243,11 +231,6 @@
         function handlePinSelector() {
             // Add your pin selector logic here
             console.log('Pin selector submitted');
-        }
-
-        function handlePinEntry() {
-            // Add your pin entry logic here
-            console.log('Pin entry submitted');
         }
     </script>
 </body>
