@@ -67,6 +67,8 @@ class Stronghold {
     // Set up SSE connection
     const eventSource = new EventSource(sseEndpoint);
     
+    console.log('Setting up SSE connection...');
+    
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
       console.log('SSE message received:', data);
@@ -78,10 +80,16 @@ class Stronghold {
       }
     };
     
+    // Handle SSE errors
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+    };
+    
     // Wait for client ID
     return new Promise((resolve) => {
       eventSource.addEventListener('client_id', (event) => {
         const data = JSON.parse(event.data);
+        console.log('Received client ID:', data.client_id);
         resolve(data.client_id);
       });
     });
