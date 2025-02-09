@@ -89,9 +89,6 @@ class Stronghold {
       } else if (data.type === 'step_up_initiated') {
         console.log('Received step-up initiation event:', data);
         this.handleStepUpInitiated(data.step_up_id);
-      } else if (data.type === 'auth_complete') {
-        console.log('Received auth complete event');
-        this.handleAuthComplete();
       } else if (data.type === 'auth_level_changed') {
         this.handleAuthLevelChange(data.level);
       } else {
@@ -222,6 +219,12 @@ class Stronghold {
     this.eventSource.addEventListener('mobile_message', (event) => {
         console.log('Received mobile message:', event);
         this.handleMobileMessage(event.data);
+    });
+
+    // Add event listener for auth_complete event
+    this.eventSource.addEventListener('auth_complete', (event) => {
+        console.log('Received auth_complete event:', event);
+        this.handleAuthComplete();
     });
   }
 
