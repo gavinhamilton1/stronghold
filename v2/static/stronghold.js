@@ -82,11 +82,23 @@ class Stronghold {
     // Wait for client ID
     return new Promise((resolve) => {
       this.clientIdResolver = resolve;
-      this.eventSource.addEventListener('client_id', (event) => {
+      
+      // Handle the initial client ID message
+      this.eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log('Received client ID:', data.client_id);
-        resolve(data.client_id);
-      });
+        console.log('SSE message received:', data);
+        
+        if (data.client_id) {
+          console.log('Received client ID in message:', data.client_id);
+          this.currentClientId = data.client_id;
+          resolve(data.client_id);
+        }
+      };
+      
+      // Handle SSE errors
+      this.eventSource.onerror = (error) => {
+        console.error('SSE connection error:', error);
+      };
     });
   }
 
@@ -181,7 +193,8 @@ class Stronghold {
     this.eventSource.addEventListener('step_up_initiated', (event) => {
         console.log('Received step-up initiated event:', event);
         try {
-            const stepUpId = JSON.parse(event.data);
+            const data = JSON.parse(event.data);
+            const stepUpId = data.step_up_id || data;
             console.log('Received step-up ID:', stepUpId);
             this.handleStepUpInitiated(stepUpId);
         } catch (error) {
