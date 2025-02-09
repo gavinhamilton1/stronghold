@@ -118,6 +118,36 @@ async def register_sse(request: Request):
 
     return EventSourceResponse(event_generator())
 
+@app.post("/initiate-step-up/{client_id}")
+async def initiate_step_up(client_id: str):
+    """Initiate a step-up for a client"""
+    logger.info(f"🔄 Initiating step-up for client: {client_id}")
+    
+    step_up_id = str(uuid.uuid4())
+    
+    # Store the mapping
+    STEP_UP_TO_CLIENT[step_up_id] = client_id
+    logger.info(f"🔗 Mapped step_up_id {step_up_id} to client_id {client_id}")
+    
+    # Create event with consistent format for both SSE and polling
+    event = {
+        "type": "step_up_initiated",
+        "data": step_up_id
+    }
+    
+    # Store for both SSE and polling
+    if client_id in CONNECTIONS:
+        logger.info(f"📤 Sending via SSE to client: {client_id}")
+        await CONNECTIONS[client_id].put({
+            "event": "step_up_initiated",
+            "data": step_up_id
+        })
+    
+    logger.info(f"📤 Adding event to polling queue for client: {client_id}")
+    POLLING_EVENTS[client_id].append(event)
+    
+    return {"status": "success", "step_up_id": step_up_id}
+
 @app.post("/initiate-step-up/mobile-pin")
 async def initiate_mobile_pin_step_up():
     """Initiate a step-up for mobile PIN verification"""
