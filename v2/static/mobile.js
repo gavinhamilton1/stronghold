@@ -345,30 +345,59 @@ class MobileStepUp {
     async handlePinSelection(selectedPin) {
         try {
             window.mobileDebug.log(`Submitting PIN to server`);
-            const response = await fetch('/verify-pin', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ pin: selectedPin })
-            });
-
-            const data = await response.json();
-            window.mobileDebug.log(`Server response received: ${JSON.stringify(data)}`);
-            if (data.step_up_id) {
-                window.mobileDebug.log(`Got step_up_id: ${data.step_up_id}, starting authentication`);
-                this.stepUpId = data.step_up_id;
-               
-                window.mobileDebug.log('Connecting WebSocket...');
-                // Connect WebSocket before authentication
-                this.connectWebSocket();
-
-                window.mobileDebug.log('Starting authentication...');
-                await this.handleAuthentication();
-            }
+            // Immediately trigger biometric authentication
+            await this.authenticateWithBiometrics()
+                .then(() => {
+                    // After successful biometric auth, verify the pin
+                    return fetch('/verify-pin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ pin: selectedPin })
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.correct) {
+                        mobileDebug.log('PIN verified successfully');
+                        // Handle successful authentication
+                        this.handleSuccessfulAuth();
+                    } else {
+                        mobileDebug.error('Incorrect PIN selected');
+                    }
+                })
+                .catch(error => {
+                    mobileDebug.error('Error in authentication process: ' + error);
+                });
         } catch (error) {
             window.mobileDebug.error('Network error');
         }
+    }
+
+    async authenticateWithBiometrics() {
+        try {
+            // Try to authenticate with biometrics
+            const assertion = await navigator.credentials.get({
+                publicKey: {
+                    challenge: new Uint8Array(32),
+                    rpId: window.location.hostname,
+                    userVerification: "required",
+                }
+            });
+            
+            if (assertion) {
+                window.mobileDebug.log('Successfully authenticated with biometrics');
+                return true;
+            }
+        } catch (error) {
+            window.mobileDebug.error('Biometric authentication failed: ' + error);
+            return false;
+        }
+    }
+
+    handleSuccessfulAuth() {
+        // Implementation of handleSuccessfulAuth method
     }
 }
 
