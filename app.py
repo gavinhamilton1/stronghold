@@ -390,6 +390,7 @@ async def get_pin_options(request: Request):
     pin_options = list(pins)
     random.shuffle(pin_options)
     
+    logger.info(f"Returning PIN options including correct PIN {stored_pin}")
     return {"pins": pin_options}
 
 @app.post("/generate-pin")
@@ -415,10 +416,15 @@ async def generate_pin(request: Request):
         # Also update the current PIN for verification
         global CURRENT_PIN
         CURRENT_PIN = pin
+        # Store this PIN for the step-up process
+        step_up_id = str(uuid.uuid4())
+        step_up_pins[step_up_id] = pin
+        STEP_UP_TO_CLIENT[step_up_id] = client_id
         
         return JSONResponse(content={
             "pin": pin,
-            "client_id": client_id
+            "client_id": client_id,
+            "step_up_id": step_up_id
         })
     except Exception as e:
         logger.error(f'Error generating PIN: {str(e)}')
