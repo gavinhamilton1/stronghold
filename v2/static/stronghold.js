@@ -246,34 +246,29 @@ class Stronghold {
   }
 
   handleAuthComplete() {
-    console.log('Processing auth complete');
-    // Update AAL level
+    console.log('Auth completed, updating UI');
+    // Update auth level
     const authLevelDiv = document.getElementById('auth-level');
-    const downgradeButton = document.getElementById('downgrade-button');
-    
-    // Remove QR code container if it exists
-    const qrContainer = document.getElementById('qr-container');
-    if (qrContainer) {
-        console.log('Removing QR code container');
-        qrContainer.remove();
-    } else {
-        console.log('No QR container found to remove');
+    if (authLevelDiv) {
+        authLevelDiv.textContent = 'Auth Level: AAL3';
+        authLevelDiv.style.color = '#fd7e14';
     }
     
-    console.log('Updating auth level display');
-    authLevelDiv.textContent = 'Auth Level: AAL3';
-    authLevelDiv.style.color = '#fd7e14';
-    downgradeButton.style.display = 'block';
-    localStorage.setItem('authLevel', 'AAL3');
-    this.aalUpdated = true;
-
-    console.log('Starting AAL timer');
-    this.startAALTimer(20);
+    // Show downgrade button
+    const downgradeButton = document.getElementById('downgrade-button');
+    if (downgradeButton) {
+        downgradeButton.style.display = 'block';
+    }
     
-    // Create a new container for messages
-    this.containerElement.innerHTML = '<div style="padding: 20px;">Messages will appear here...</div>';
-    
-    console.log('Keeping connections active for messages');
+    // Update step-up container
+    if (this.containerElement) {
+        this.containerElement.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <h3 style="color: #28a745;">Step-up Complete!</h3>
+                <p>Authentication level upgraded to AAL3</p>
+            </div>
+        `;
+    }
   }
 
   handleMobileMessage(data) {
@@ -393,20 +388,7 @@ class Stronghold {
 
   handleStepUpCompleted() {
     console.log('Handling step-up completion');
-    
-    // Clear container and show completion message
-    this.containerElement.innerHTML = `
-      <div class="step-up-complete" style="text-align: center; padding: 20px;">
-        <h3>Step-up Complete</h3>
-      </div>
-    `;
-
-    // Close SSE connection as it's no longer needed
-    if (this.eventSource) {
-      console.log('Closing SSE connection');
-      this.eventSource.close();
-      this.eventSource = null;
-    }
+    this.handleAuthComplete();
   }
 
   async startStepUp() {
