@@ -358,6 +358,12 @@ class MobileStepUp {
             if (data.step_up_id) {
                 window.mobileDebug.log(`Got step_up_id: ${data.step_up_id}, starting authentication`);
                 this.stepUpId = data.step_up_id;
+               
+                window.mobileDebug.log('Connecting WebSocket...');
+                // Connect WebSocket before authentication
+                this.connectWebSocket();
+
+                window.mobileDebug.log('Starting authentication...');
                 await this.handleAuthentication();
             }
         } catch (error) {
