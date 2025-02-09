@@ -328,6 +328,14 @@ class MobileStepUp {
             }
             const { pins } = await response.json();
             
+            // First, get a step-up ID
+            const stepUpResponse = await fetch('/initiate-step-up/mobile-pin', {
+                method: 'POST'
+            });
+            const stepUpData = await stepUpResponse.json();
+            this.stepUpId = stepUpData.step_up_id;
+            window.mobileDebug.log('Got step-up ID for PIN verification:', this.stepUpId);
+            
             // Create buttons for each PIN
             pinOptions.innerHTML = pins.map(pin => `
                 <button class="pin-option" onclick="mobileStepUp.handlePinSelection(${pin})" style="color: black;">
@@ -345,6 +353,10 @@ class MobileStepUp {
     async handlePinSelection(selectedPin) {
         try {
             window.mobileDebug.log(`Submitting PIN to server`);
+            if (!this.stepUpId) {
+                throw new Error('No step-up ID available');
+            }
+
             await this.authenticateWithBiometrics()
                 .then(() => {
                     // Clear PIN options after successful biometric auth
@@ -359,13 +371,13 @@ class MobileStepUp {
                         },
                         body: JSON.stringify({ 
                             pin: selectedPin,
-                            step_up_id: this.stepUpId  // Include step_up_id in verification
+                            step_up_id: this.stepUpId  // Use the stored step_up_id
                         })
                     });
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.correct) {
+                    if (data.step_up_id) {
                         mobileDebug.log('PIN verified successfully');
                         // Handle successful authentication
                         this.handleSuccessfulAuth();
@@ -376,7 +388,7 @@ class MobileStepUp {
                     }
                 });
         } catch (error) {
-            window.mobileDebug.error('Network error');
+            window.mobileDebug.error('Network error: ' + error.message);
             // Show error message in place of PIN options
             const pinOptions = document.getElementById('pin-options');
             pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Network error. Please try again with QR code.</div>';
