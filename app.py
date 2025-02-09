@@ -357,28 +357,30 @@ async def get_current_pin():
 async def verify_pin(pin_data: dict):
     """Verify a PIN and return a step-up ID if correct"""
     global CURRENT_PIN
+    logger.info(f"📍 Received PIN verification request: {pin_data}")
     
     if CURRENT_PIN is None:
+        logger.error("❌ No active PIN set")
         return JSONResponse(
             status_code=400,
             content={"error": "No active PIN"}
         )
 
     submitted_pin = pin_data.get("pin")
+    logger.info(f"🔍 Comparing submitted PIN with current PIN {submitted_pin} == {CURRENT_PIN}")
     if submitted_pin == CURRENT_PIN:
         # Generate a new step-up ID like we do for QR codes
         step_up_id = str(uuid.uuid4())
         client_id = str(uuid.uuid4())  # Generate a new client ID
         STEP_UP_TO_CLIENT[step_up_id] = client_id
+        logger.info(f"✅ PIN matched! Generated step_up_id: {step_up_id}")
         
         return {
-            "matched": True,
             "step_up_id": step_up_id
         }
     
-    return {
-        "matched": False
-    }
+    logger.info("❌ PIN did not match")
+    return {}
 
 @app.post("/update-pin")
 async def update_pin(pin_data: dict):

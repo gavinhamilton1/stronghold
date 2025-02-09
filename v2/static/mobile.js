@@ -353,9 +353,8 @@ class MobileStepUp {
     }
 
     async handlePinSelection(selectedPin) {
-        window.mobileDebug.log('PIN selected: ' + selectedPin);
-        
         try {
+            window.mobileDebug.log(`Submitting PIN to server`);
             const response = await fetch('/verify-pin', {
                 method: 'POST',
                 headers: {
@@ -364,22 +363,15 @@ class MobileStepUp {
                 body: JSON.stringify({ pin: selectedPin })
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
             const data = await response.json();
-            if (data.matched) {
-                window.mobileDebug.log('PIN verified successfully');
+            window.mobileDebug.log(`Server response received: ${JSON.stringify(data)}`);
+            if (data.step_up_id) {
+                window.mobileDebug.log(`Got step_up_id: ${data.step_up_id}, starting authentication`);
                 this.stepUpId = data.step_up_id;
                 await this.handleAuthentication();
-            } else {
-                window.mobileDebug.error('Incorrect PIN selected');
-                // Optionally reload options after a delay
-                setTimeout(() => this.loadPinOptions(), 1000);
             }
         } catch (error) {
-            window.mobileDebug.error('Error verifying PIN: ' + error);
+            window.mobileDebug.error('Network error');
         }
     }
 }
