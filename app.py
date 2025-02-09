@@ -62,6 +62,7 @@ CURRENT_PIN = None
 
 # Add to the global variables at the top
 pins = {}  # Store PINs by client_id
+step_up_pins = {}  # Store PINs by step_up_id
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -117,33 +118,29 @@ async def register_sse(request: Request):
 
     return EventSourceResponse(event_generator())
 
-@app.post("/initiate-step-up/{client_id}")
-async def initiate_step_up(client_id: str):
-    logger.info(f"🔄 Initiating step-up for client: {client_id}")
-    step_up_id = str(uuid.uuid4())
-    
-    # Store the mapping
-    STEP_UP_TO_CLIENT[step_up_id] = client_id
-    logger.info(f"🔗 Mapped step_up_id {step_up_id} to client_id {client_id}")
-    
-    # Create event with consistent format for both SSE and polling
-    event = {
-        "type": "step_up_initiated",
-        "data": step_up_id
-    }
-    
-    # Store for both SSE and polling
-    if client_id in CONNECTIONS:
-        logger.info(f"📤 Sending via SSE to client: {client_id}")
-        await CONNECTIONS[client_id].put({
-            "event": "step_up_initiated",
-            "data": step_up_id
-        })
-    
-    logger.info(f"📤 Adding event to polling queue for client: {client_id}")
-    POLLING_EVENTS[client_id].append(event)
-    
-    return {"status": "success", "step_up_id": step_up_id}
+@app.post("/initiate-step-up/mobile-pin")
+async def initiate_mobile_pin_step_up():
+    """Initiate a step-up for mobile PIN verification"""
+    try:
+        step_up_id = str(uuid.uuid4())
+        client_id = str(uuid.uuid4())
+        STEP_UP_TO_CLIENT[step_up_id] = client_id
+        
+        # Generate a PIN for this step-up
+        pin = str(random.randint(10000, 99999))
+        step_up_pins[step_up_id] = pin
+        logger.info(f"Generated PIN {pin} for step_up_id {step_up_id}")
+        
+        return {
+            "step_up_id": step_up_id,
+            "pin": pin
+        }
+    except Exception as e:
+        logger.error(f"Error initiating mobile PIN step-up: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
 
 @app.post("/complete-step-up/{client_id}")
 async def complete_step_up(client_id: str):
@@ -339,30 +336,20 @@ async def verify_pin(pin_data: dict):
     
     step_up_id = pin_data.get("step_up_id")
     if not step_up_id:
-        logger.error("❌ No active PIN set")
+        logger.error("❌ No step_up_id provided")
         return JSONResponse(
             status_code=400,
             content={"error": "No step_up_id provided"}
         )
 
-    client_id = STEP_UP_TO_CLIENT.get(step_up_id)
-    if not client_id:
-        logger.error("❌ No client_id found for step_up_id")
-        return JSONResponse(
-            status_code=400,
-            content={"error": "Invalid step_up_id"}
-        )
-
     submitted_pin = pin_data.get("pin")
-    stored_pin = pins.get(client_id)
+    stored_pin = step_up_pins.get(step_up_id)
     logger.info(f"🔍 Comparing submitted PIN {submitted_pin} with stored PIN {stored_pin}")
-    if stored_pin and submitted_pin == stored_pin:
-        # Generate a new step-up ID like we do for QR codes
-        step_up_id = str(uuid.uuid4())
-        client_id = str(uuid.uuid4())  # Generate a new client ID
-        STEP_UP_TO_CLIENT[step_up_id] = client_id
+    
+    if stored_pin and str(submitted_pin) == stored_pin:
         logger.info(f"✅ PIN matched! Generated step_up_id: {step_up_id}")
-        
+        # Clean up the used PIN
+        step_up_pins.pop(step_up_id, None)
         return {
             "step_up_id": step_up_id
         }
