@@ -330,39 +330,34 @@ class Stronghold {
         // Create display container
         const container = document.createElement('div');
         container.style.textAlign = 'center';
-        container.style.padding = '20px';
+        container.style.padding = '10px';
         container.id = 'qr-container';  // Add ID for easy removal
-        
+
         // Create QR code container
-        const qrContainer = document.createElement('canvas');
-        qrContainer.id = 'qr-code';
-        
+        const qrContainer = document.createElement('div');
+        qrContainer.id = 'qr-code-temp';
+        container.appendChild(qrContainer);
+
+        // Create QR Code in the container
+        new QRCode(qrContainer, {
+            text: stepUpId,
+            width: 128,
+            height: 128,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+
         // Create step-up ID display
         const stepUpDisplay = document.createElement('p');
         stepUpDisplay.textContent = stepUpId;
         stepUpDisplay.style.fontFamily = 'monospace';
-        stepUpDisplay.style.marginTop = '20px';
+        stepUpDisplay.style.marginTop = '10px';
+        stepUpDisplay.style.fontSize = '12px';
         
         // Add elements to container
-        container.appendChild(qrContainer);
         container.appendChild(stepUpDisplay);
         this.containerElement.appendChild(container);
-        
-        console.log('Generating QR code for step-up ID');
-        // Generate QR code
-        QRCode.toCanvas(
-            qrContainer,
-            stepUpId,
-            {
-                width: 256,
-                margin: 2,
-                color: {
-                    dark: '#000000',
-                    light: '#ffffff'
-                }
-            }
-        );
-        console.log('QR code generated successfully');
     } catch (error) {
         console.error('Error displaying step-up ID:', error);
         this.containerElement.innerHTML = `Error: ${error.message}`;

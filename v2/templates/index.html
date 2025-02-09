@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stronghold Step-up Demo</title>
     <script src="/static/qrcode.min.js"></script>
+    <script src="/static/qrcode.js"></script>
     <!-- Ionic Core -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
@@ -58,14 +59,15 @@
             background-color: #0056b3;
         }
         #step-up-container {
-            min-height: 210px;
-            width: 100%;
+            min-height: 220px;
+            width: 200px;
             display: flex;
             flex-direction: column;
             align-items: center;
             border: 1px solid #ddd;
             padding: 20px;
             border-radius: 4px;
+            margin: 0 auto;
         }
         .status {
             margin-top: 20px;
@@ -85,7 +87,7 @@
 <body>
     <div class="container">
         <h1>Stronghold Step-up Demo</h1>
-        <div style="color: #666; margin-bottom: 10px;">Version 2.0.43</div>
+        <div style="color: #666; margin-bottom: 10px;">Version 2.0.61</div>
         <div style="margin-bottom: 20px; text-align: center;">
             <div style="font-size: 12px; color: #666; margin-top: 5px;">
                 https://stronghold.onrender.com/mobile
@@ -113,9 +115,10 @@
         
         <!-- Content Sections -->
         <div id="qr-code" class="content active">
-            <div id="step-up-container"></div>
+            <div id="qrcode"></div>
+            <div id="step-up-container">
+            </div>
         </div>
-        
         <div id="pin-selector" class="content">
             <div class="input-group">
                 <h3>Select PIN</h3>
