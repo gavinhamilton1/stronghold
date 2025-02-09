@@ -71,35 +71,30 @@ class Stronghold {
 
     this.containerElement = document.getElementById(containerId);
     
-    // Set up SSE connection
-    this.eventSource = new EventSource(sseEndpoint);
-    
-    console.log('Setting up SSE connection...');
-    
-    // Set up event listeners
-    this.setupEventListeners();
-    
-    // Wait for client ID
-    return new Promise((resolve) => {
-      this.clientIdResolver = resolve;
+    try {
+      // Try SSE first
+      console.log('Attempting to establish SSE connection...');
+      this.eventSource = new EventSource(sseEndpoint);
       
-      // Handle the initial client ID message
-      this.eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('SSE message received:', data);
-        
-        if (data.client_id) {
-          console.log('Received client ID in message:', data.client_id);
-          this.currentClientId = data.client_id;
-          resolve(data.client_id);
-        }
-      };
+      // Set up event listeners with a timeout
+      const sseResult = await Promise.race([
+        this.setupSSE(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SSE timeout')), 3000))
+      ]);
       
-      // Handle SSE errors
-      this.eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
-      };
-    });
+      console.log('SSE connection established successfully');
+      return sseResult;
+    } catch (error) {
+      console.log('SSE connection failed, falling back to polling:', error);
+      // Clean up failed SSE connection if it exists
+      if (this.eventSource) {
+        this.eventSource.close();
+        this.eventSource = null;
+      }
+      
+      // Fall back to polling
+      return this.setupPolling();
+    }
   }
 
   handleAuthLevelChange(level) {
