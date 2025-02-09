@@ -89,6 +89,9 @@ class Stronghold {
       } else if (data.type === 'step_up_initiated') {
         console.log('Received step-up initiation event:', data);
         this.handleStepUpInitiated(data.step_up_id);
+      } else if (data.type === 'auth_complete') {
+        console.log('Received auth complete event');
+        this.handleAuthComplete();
       } else if (data.type === 'auth_level_changed') {
         this.handleAuthLevelChange(data.level);
       } else {
@@ -252,6 +255,7 @@ class Stronghold {
     if (authLevelDiv) {
         authLevelDiv.textContent = 'Auth Level: AAL3';
         authLevelDiv.style.color = '#fd7e14';
+        localStorage.setItem('authLevel', 'AAL3');
     }
     
     // Show downgrade button
@@ -269,6 +273,9 @@ class Stronghold {
             </div>
         `;
     }
+    
+    // Start AAL timer
+    this.startAALTimer(20);
   }
 
   handleMobileMessage(data) {
