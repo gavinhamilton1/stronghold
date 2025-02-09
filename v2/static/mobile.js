@@ -348,6 +348,10 @@ class MobileStepUp {
             // Immediately trigger biometric authentication
             await this.authenticateWithBiometrics()
                 .then(() => {
+                    // Clear PIN options after successful biometric auth
+                    const pinOptions = document.getElementById('pin-options');
+                    pinOptions.innerHTML = '<div style="text-align: center; padding: 20px;">PIN verification in progress...</div>';
+                    
                     // After successful biometric auth, verify the pin
                     return fetch('/verify-pin', {
                         method: 'POST',
@@ -365,13 +369,22 @@ class MobileStepUp {
                         this.handleSuccessfulAuth();
                     } else {
                         mobileDebug.error('Incorrect PIN selected');
+                        // Show error message in place of PIN options
+                        const pinOptions = document.getElementById('pin-options');
+                        pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Incorrect PIN. Please try again with QR code.</div>';
                     }
                 })
                 .catch(error => {
                     mobileDebug.error('Error in authentication process: ' + error);
+                    // Show error message in place of PIN options
+                    const pinOptions = document.getElementById('pin-options');
+                    pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Authentication failed. Please try again with QR code.</div>';
                 });
         } catch (error) {
             window.mobileDebug.error('Network error');
+            // Show error message in place of PIN options
+            const pinOptions = document.getElementById('pin-options');
+            pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Network error. Please try again with QR code.</div>';
         }
     }
 
