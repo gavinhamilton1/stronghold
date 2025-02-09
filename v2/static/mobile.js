@@ -323,6 +323,9 @@ class MobileStepUp {
         try {
             // Get the step-up ID from the browser's PIN display
             const browserPinResponse = await fetch('/get-current-pin');
+            if (!browserPinResponse.ok) {
+                throw new Error('No active PIN available. Please generate a PIN in the browser first.');
+            }
             const browserPinData = await browserPinResponse.json();
             if (!browserPinData.step_up_id) {
                 throw new Error('No step-up ID available from browser');
@@ -333,7 +336,7 @@ class MobileStepUp {
             // Get PIN options from server
             const response = await fetch(`/get-pin-options?step_up_id=${this.stepUpId}`);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error('Failed to get PIN options. Please make sure a PIN is generated in the browser.');
             }
             const { pins } = await response.json();
             
@@ -347,7 +350,14 @@ class MobileStepUp {
             window.mobileDebug.log('PIN options loaded');
         } catch (error) {
             window.mobileDebug.error('Error loading PIN options: ' + error);
-            pinOptions.innerHTML = '<div style="color: red;">Error loading PIN options. Please try again.</div>';
+            pinOptions.innerHTML = `
+                <div style="color: red; text-align: center; padding: 20px;">
+                    ${error.message}
+                    <br><br>
+                    <button onclick="mobileStepUp.loadPinOptions()" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px;">
+                        Try Again
+                    </button>
+                </div>`;
         }
     }
 
