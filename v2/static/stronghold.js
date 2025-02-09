@@ -76,30 +76,8 @@ class Stronghold {
     
     console.log('Setting up SSE connection...');
     
-    this.eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log('SSE message received:', data);
-      
-      if (data.client_id) {
-        console.log('Received client ID in message:', data.client_id);
-        this.currentClientId = data.client_id;
-        if (this.clientIdResolver) {
-          this.clientIdResolver(data.client_id);
-        }
-      } else if (data.type === 'step_up_initiated') {
-        console.log('Received step-up initiation event:', data);
-        this.handleStepUpInitiated(data.step_up_id);
-      } else if (data.type === 'auth_level_changed') {
-        this.handleAuthLevelChange(data.level);
-      } else {
-        console.log('Received unknown event type:', data);
-      }
-    };
-    
-    // Handle SSE errors
-    this.eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
-    };
+    // Set up event listeners
+    this.setupEventListeners();
     
     // Wait for client ID
     return new Promise((resolve) => {
@@ -197,6 +175,8 @@ class Stronghold {
   }
 
   setupEventListeners() {
+    console.log('Setting up event listeners');
+    
     // Listen for step-up initiation
     this.eventSource.addEventListener('step_up_initiated', (event) => {
         console.log('Received step-up initiated event:', event);
@@ -219,10 +199,6 @@ class Stronghold {
     this.eventSource.addEventListener('auth_complete', (event) => {
         console.log('Received auth_complete event with data:', event.data);
         try {
-            // Parse the event data if it's a string
-            if (typeof event.data === 'string') {
-                JSON.parse(event.data);
-            }
             this.handleAuthComplete();
         } catch (error) {
             console.error('Error processing auth_complete event:', error);
