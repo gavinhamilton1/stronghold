@@ -357,14 +357,16 @@ class Stronghold {
             return;
         }
 
-        // Create QR code in the existing qrcode div
+        // Create a new div for the QR code
         const qrcodeDiv = document.getElementById('qrcode');
         if (!qrcodeDiv) {
             console.error('QR code div not found');
             return;
         }
         qrcodeDiv.innerHTML = ''; // Clear existing content
-        console.log('Creating QR code for:', stepUpId);
+        qrcodeDiv.appendChild(newQrDiv);
+        
+        // Create QR code in the new div
         new QRCode(qrcodeDiv, {
             text: stepUpId,
             width: 128,
