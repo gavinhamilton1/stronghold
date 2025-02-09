@@ -430,4 +430,71 @@ class MobileStepUp {
 
 // Initialize
 const mobileStepUp = new MobileStepUp();
-mobileStepUp.init(); 
+mobileStepUp.init();
+
+// Handle PIN selection
+async function handlePinSelection(pin) {
+    console.log('Selected PIN:', pin);
+    try {
+        // Send the PIN to the server for verification
+        const response = await fetch('/verify-pin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                pin: pin,
+                step_up_id: currentStepUpId
+            })
+        });
+
+        const data = await response.json();
+        if (data.step_up_id) {
+            // PIN verified successfully
+            console.log('PIN verified successfully');
+            // Send auth_complete message through WebSocket
+            if (ws) {
+                ws.send(JSON.stringify({
+                    type: 'auth_complete'
+                }));
+            }
+            // Show success message
+            showMessage('PIN verified successfully', 'success');
+        } else {
+            // PIN verification failed
+            console.error('PIN verification failed');
+            showMessage('Incorrect PIN', 'error');
+        }
+    } catch (error) {
+        console.error('Error verifying PIN:', error);
+        showMessage('Error verifying PIN: ' + error.message, 'error');
+    }
+}
+
+// Function to show messages to the user
+function showMessage(message, type = 'info') {
+    mobileDebug.log(`${type}: ${message}`);
+    // You could also add a visual indicator here if desired
+}
+
+// Handle PIN options display
+async function displayPinOptions() {
+    try {
+        const response = await fetch('/get-pin-options');
+        const data = await response.json();
+        
+        const pinOptionsContainer = document.getElementById('pin-options');
+        pinOptionsContainer.innerHTML = '';
+        
+        data.pins.forEach(pin => {
+            const button = document.createElement('button');
+            button.className = 'pin-option';
+            button.textContent = pin;
+            button.onclick = () => handlePinSelection(pin);
+            pinOptionsContainer.appendChild(button);
+        });
+    } catch (error) {
+        console.error('Error getting PIN options:', error);
+        mobileDebug.error('Failed to get PIN options');
+    }
+} 
