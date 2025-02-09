@@ -87,7 +87,7 @@
 <body>
     <div class="container">
         <h1>Stronghold Step-up Demo</h1>
-        <div style="color: #666; margin-bottom: 10px;">Version 2.0.61</div>
+        <div style="color: #666; margin-bottom: 10px;">Version 2.0.62</div>
         <div style="margin-bottom: 20px; text-align: center;">
             <div style="font-size: 12px; color: #666; margin-top: 5px;">
                 https://stronghold.onrender.com/mobile
@@ -124,6 +124,16 @@
                 <h3>Select PIN</h3>
                 <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
                     Generating...
+                </div>
+                <div id="pin-message-box" style="display: none; margin-top: 20px;">
+                    <input type="text" 
+                           id="pin-message" 
+                           placeholder="Enter your message..." 
+                           style="width: 100%; padding: 10px; margin-bottom: 10px;">
+                    <button onclick="handleMessageSubmit()" 
+                            style="width: 100%; padding: 10px;">
+                        Send Message
+                    </button>
                 </div>
             </div>
         </div>
@@ -217,9 +227,28 @@
             });
         });
 
+        // Handle pin selection
         function handlePinSelector() {
-            // Add your pin selector logic here
-            console.log('Pin selector submitted');
+            const pinDisplay = document.getElementById('browser-pin');
+            const messageBox = document.getElementById('pin-message-box');
+            
+            // Hide the PIN
+            pinDisplay.style.display = 'none';
+            
+            // Show the message box
+            messageBox.style.display = 'block';
+        }
+        
+        // Handle message submission
+        function handleMessageSubmit() {
+            const message = document.getElementById('pin-message').value;
+            if (message.trim()) {
+                console.log('Message submitted:', message);
+                // Add your message handling logic here
+                
+                // Clear the message input
+                document.getElementById('pin-message').value = '';
+            }
         }
     </script>
 </body>
