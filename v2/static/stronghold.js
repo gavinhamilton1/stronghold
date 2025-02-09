@@ -5,6 +5,7 @@ class Stronghold {
     this.timerInterval = null;
     this.pollingInterval = null;
     this.clientId = null;
+    this.currentClientId = null;  // Store the current client ID
     this.initializeAALLevel();
     console.log('Stronghold initialized');
   }
@@ -62,32 +63,48 @@ class Stronghold {
   }
 
   async initializeStepUp(containerId, sseEndpoint) {
+    // If we already have a connection, just return the existing client ID
+    if (this.eventSource && this.currentClientId) {
+      console.log('Using existing SSE connection with client ID:', this.currentClientId);
+      return this.currentClientId;
+    }
+
     this.containerElement = document.getElementById(containerId);
     
     // Set up SSE connection
-    const eventSource = new EventSource(sseEndpoint);
+    this.eventSource = new EventSource(sseEndpoint);
     
     console.log('Setting up SSE connection...');
     
-    eventSource.onmessage = (event) => {
+    this.eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
       console.log('SSE message received:', data);
       
-      if (data.type === 'step_up_initiated') {
+      if (data.client_id) {
+        console.log('Received client ID in message:', data.client_id);
+        this.currentClientId = data.client_id;
+        if (this.clientIdResolver) {
+          this.clientIdResolver(data.client_id);
+        }
+      } else if (data.type === 'step_up_initiated') {
+        console.log('Received step-up initiation event:', data);
         this.handleStepUpInitiated(data.step_up_id);
       } else if (data.type === 'auth_level_changed') {
         this.handleAuthLevelChange(data.level);
+      } else {
+        console.log('Received unknown event type:', data);
       }
     };
     
     // Handle SSE errors
-    eventSource.onerror = (error) => {
+    this.eventSource.onerror = (error) => {
       console.error('SSE connection error:', error);
     };
     
     // Wait for client ID
     return new Promise((resolve) => {
-      eventSource.addEventListener('client_id', (event) => {
+      this.clientIdResolver = resolve;
+      this.eventSource.addEventListener('client_id', (event) => {
         const data = JSON.parse(event.data);
         console.log('Received client ID:', data.client_id);
         resolve(data.client_id);
@@ -333,22 +350,22 @@ class Stronghold {
   async handleStepUpInitiated(stepUpId) {
     console.log('Handling step-up initiation with ID:', stepUpId);
     try {
-        // Clear the container
-        this.containerElement.innerHTML = '';
-        
-        // Create display container
-        const container = document.createElement('div');
-        container.style.textAlign = 'center';
-        container.style.padding = '10px';
-        container.id = 'qr-container';  // Add ID for easy removal
+        // Only handle QR code if we're in QR mode
+        const currentMode = document.querySelector('ion-segment').value;
+        if (currentMode !== 'qr') {
+            console.log('Not in QR mode, skipping QR code generation');
+            return;
+        }
 
-        // Create QR code container
-        const qrContainer = document.createElement('div');
-        qrContainer.id = 'qr-code-temp';
-        container.appendChild(qrContainer);
-
-        // Create QR Code in the container
-        new QRCode(qrContainer, {
+        // Create QR code in the existing qrcode div
+        const qrcodeDiv = document.getElementById('qrcode');
+        if (!qrcodeDiv) {
+            console.error('QR code div not found');
+            return;
+        }
+        qrcodeDiv.innerHTML = ''; // Clear existing content
+        console.log('Creating QR code for:', stepUpId);
+        new QRCode(qrcodeDiv, {
             text: stepUpId,
             width: 128,
             height: 128,
@@ -358,18 +375,19 @@ class Stronghold {
         });
 
         // Create step-up ID display
-        const stepUpDisplay = document.createElement('p');
-        stepUpDisplay.textContent = stepUpId;
-        stepUpDisplay.style.fontFamily = 'monospace';
-        stepUpDisplay.style.marginTop = '10px';
-        stepUpDisplay.style.fontSize = '12px';
-        
-        // Add elements to container
-        container.appendChild(stepUpDisplay);
-        this.containerElement.appendChild(container);
+        const stepUpIdDiv = document.getElementById('step-up-id');
+        if (stepUpIdDiv) {
+            stepUpIdDiv.textContent = stepUpId;
+            stepUpIdDiv.style.fontFamily = 'monospace';
+            stepUpIdDiv.style.marginTop = '10px';
+            stepUpIdDiv.style.fontSize = '12px';
+        }
     } catch (error) {
         console.error('Error displaying step-up ID:', error);
-        this.containerElement.innerHTML = `Error: ${error.message}`;
+        const qrcodeDiv = document.getElementById('qrcode');
+        if (qrcodeDiv) {
+            qrcodeDiv.innerHTML = `Error: ${error.message}`;
+        }
     }
   }
 

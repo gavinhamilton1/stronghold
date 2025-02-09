@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stronghold Step-up Demo</title>
     <script src="/static/qrcode.min.js"></script>
-    <script src="/static/qrcode.js"></script>
     <!-- Ionic Core -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
@@ -87,7 +86,7 @@
 <body>
     <div class="container">
         <h1>Stronghold Step-up Demo</h1>
-        <div style="color: #666; margin-bottom: 10px;">Version 2.0.69</div>
+        <div style="color: #666; margin-bottom: 10px;">Version 2.0.85</div>
         <div style="margin-bottom: 20px; text-align: center;">
             <div style="font-size: 12px; color: #666; margin-top: 5px;">
                 https://stronghold.onrender.com/mobile
@@ -115,8 +114,9 @@
         
         <!-- Content Sections -->
         <div id="qr-code" class="content active">
-            <div id="qrcode"></div>
-            <div id="step-up-container">
+            <div id="step-up-container" style="text-align: center; margin: 20px 0;">
+                <div id="qrcode" style="margin: 0 auto;"></div>
+                <div id="step-up-id"></div>
             </div>
         </div>
         <div id="pin-selector" class="content">
@@ -159,64 +159,17 @@
         // Start step-up process on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, starting initial step-up');
-            startStepUp();
-        });
-
-        async function startStepUp() {
-            console.log('Starting step-up process');
-            try {
-                // Initialize SSE connection and get client ID
-                console.log('Initializing SSE connection');
-                currentClientId = await stronghold.initializeStepUp('step-up-container', '/register-sse');
-                console.log('Received client ID:', currentClientId);
-                
-                // Initiate step-up
-                console.log('Initiating step-up with client ID:', currentClientId);
-                const result = await fetch(`/initiate-step-up/${currentClientId}`, {
-                    method: 'POST'
-                });
-                const data = await result.json();
-                console.log('Step-up initiated response:', data);
-                
-                // If we're in PIN selector mode, generate PIN
-                const segment = document.getElementById("selector");
-                if (segment.value === 'pin-selector') {
-                    // Get PIN from server
-                    fetch('/generate-pin', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ client_id: currentClientId })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Received PIN:', data.pin);
-                        document.getElementById('browser-pin').textContent = data.pin;
-                    }).catch(error => console.error('Error updating PIN:', error));
-                } else if (selectedValue === 'qr') {
-                    console.log('QR section activated');
-                    // Clear existing QR code
-                    document.getElementById('step-up-container').innerHTML = '';
-                    startStepUp();
-                }
-            } catch (error) {
-                console.error('Step-up error:', error);
-                showStatus('Error starting step-up: ' + error.message, 'error');
-            }
-        }
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize the segment control
             const segment = document.getElementById("selector");
-
-            // Sections
             const sections = {
                 "qr": document.getElementById("qr-code"),
                 "pin-selector": document.getElementById("pin-selector")
             };
-
-            // Update the segment change handler
+            
+            // Start with QR code section
+            startStepUp('qr');
+            
+            // Handle segment changes
             segment.addEventListener("ionChange", function (event) {
                 let selectedValue = event.detail.value;
                 console.log('Segment changed to:', selectedValue);
@@ -227,35 +180,62 @@
                 // Show selected section
                 if (sections[selectedValue]) {
                     sections[selectedValue].classList.add("active");
-                    
-                    if (selectedValue === 'pin-selector') {
-                        console.log('PIN selector activated');
-                        // Clear existing PIN display
-                        document.getElementById('browser-pin').textContent = 'Generating...';
-                        
-                        // Get PIN from server
-                        fetch('/generate-pin', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ client_id: currentClientId })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Received PIN:', data.pin);
-                            document.getElementById('browser-pin').textContent = data.pin;
-                        }).catch(error => console.error('Error updating PIN:', error));
-                    } else if (selectedValue === 'qr') {
-                        console.log('QR section activated');
-                        // Clear existing QR code
-                        document.getElementById('step-up-container').innerHTML = '';
-                        startStepUp();
-                    }
+                    startStepUp(selectedValue);
                 }
             });
         });
 
+        async function startStepUp(mode) {
+            console.log('Starting step-up process for mode:', mode);
+            try {
+                // Initialize SSE connection and get client ID
+                console.log('Initializing SSE connection');
+                currentClientId = await stronghold.initializeStepUp('step-up-container', '/register-sse');
+                console.log('Received client ID:', currentClientId);
+                
+                if (mode === 'pin-selector') {
+                    // Get PIN from server
+                    console.log('Requesting PIN for client:', currentClientId);
+                    document.getElementById('browser-pin').textContent = 'Generating...';
+                    const pinResponse = await fetch('/generate-pin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ client_id: currentClientId })
+                    });
+                    if (!pinResponse.ok) {
+                        throw new Error(`HTTP error! status: ${pinResponse.status}`);
+                    }
+                    const pinData = await pinResponse.json();
+                    console.log('Received PIN:', pinData.pin);
+                    document.getElementById('browser-pin').textContent = pinData.pin;
+                } else if (mode === 'qr') {
+                    // Clear existing QR code
+                    const qrcodeDiv = document.getElementById('qrcode');
+                    if (qrcodeDiv) {
+                        qrcodeDiv.innerHTML = '';
+                    }
+                    // Initiate step-up for QR code
+                    console.log('Initiating step-up with client ID:', currentClientId);
+                    const result = await fetch(`/initiate-step-up/${currentClientId}`, {
+                        method: 'POST'
+                    });
+                    const data = await result.json();
+                    console.log('Step-up initiated response:', data);
+                    if (data.step_up_id) {
+                        stronghold.handleStepUpInitiated(data.step_up_id);
+                    }
+                }
+            } catch (error) {
+                console.error('Step-up error:', error);
+                document.getElementById('browser-pin').textContent = 'Error generating PIN';
+                showStatus('Error starting step-up: ' + error.message, 'error');
+            }
+        }
+    </script>
+
+    <script>
         // Handle pin selection
         function handlePinSelector() {
             const pinDisplay = document.getElementById('browser-pin');

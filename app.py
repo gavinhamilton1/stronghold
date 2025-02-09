@@ -60,6 +60,9 @@ STEP_UP_TO_CLIENT = {}
 # Add at the top with other global variables
 CURRENT_PIN = None
 
+# Add to the global variables at the top
+pins = {}  # Store PINs by client_id
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Serve main page"""
@@ -332,19 +335,28 @@ async def get_current_pin():
 @app.post("/verify-pin")
 async def verify_pin(pin_data: dict):
     """Verify a PIN and return a step-up ID if correct"""
-    global CURRENT_PIN
     logger.info(f"📍 Received PIN verification request: {pin_data}")
     
-    if CURRENT_PIN is None:
+    step_up_id = pin_data.get("step_up_id")
+    if not step_up_id:
         logger.error("❌ No active PIN set")
         return JSONResponse(
             status_code=400,
-            content={"error": "No active PIN"}
+            content={"error": "No step_up_id provided"}
+        )
+
+    client_id = STEP_UP_TO_CLIENT.get(step_up_id)
+    if not client_id:
+        logger.error("❌ No client_id found for step_up_id")
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid step_up_id"}
         )
 
     submitted_pin = pin_data.get("pin")
-    logger.info(f"🔍 Comparing submitted PIN with current PIN {submitted_pin} == {CURRENT_PIN}")
-    if submitted_pin == CURRENT_PIN:
+    stored_pin = pins.get(client_id)
+    logger.info(f"🔍 Comparing submitted PIN {submitted_pin} with stored PIN {stored_pin}")
+    if stored_pin and submitted_pin == stored_pin:
         # Generate a new step-up ID like we do for QR codes
         step_up_id = str(uuid.uuid4())
         client_id = str(uuid.uuid4())  # Generate a new client ID
@@ -385,6 +397,41 @@ async def get_pin_options():
     random.shuffle(pin_options)
     
     return {"pins": pin_options}
+
+@app.post("/generate-pin")
+async def generate_pin(request: Request):
+    """Generate a new PIN for a client"""
+    try:
+        data = await request.json()
+        client_id = data.get('client_id')
+        if not client_id:
+            logger.error('No client_id provided')
+            return JSONResponse(
+                status_code=400,
+                content={"error": "No client_id provided"}
+            )
+            
+        # Generate a random 5-digit PIN
+        pin = str(random.randint(10000, 99999))
+        logger.info(f'Generated PIN {pin} for client {client_id}')
+        
+        # Store the PIN with the client_id
+        pins[client_id] = pin
+        
+        # Also update the current PIN for verification
+        global CURRENT_PIN
+        CURRENT_PIN = pin
+        
+        return JSONResponse(content={
+            "pin": pin,
+            "client_id": client_id
+        })
+    except Exception as e:
+        logger.error(f'Error generating PIN: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
 
 if __name__ == "__main__":
     import uvicorn
