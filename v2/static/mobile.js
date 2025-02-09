@@ -321,20 +321,20 @@ class MobileStepUp {
         window.mobileDebug.log('Loading PIN options');
         
         try {
-            // Get PIN options from server
-            const response = await fetch('/get-pin-options');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const { pins } = await response.json();
-            
-            // First, get a step-up ID
+            // First, get a step-up ID and PIN
             const stepUpResponse = await fetch('/initiate-step-up/mobile-pin', {
                 method: 'POST'
             });
             const stepUpData = await stepUpResponse.json();
             this.stepUpId = stepUpData.step_up_id;
             window.mobileDebug.log('Got step-up ID for PIN verification:', this.stepUpId);
+            
+            // Get PIN options from server
+            const response = await fetch(`/get-pin-options?step_up_id=${this.stepUpId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const { pins } = await response.json();
             
             // Create buttons for each PIN
             pinOptions.innerHTML = pins.map(pin => `

@@ -365,19 +365,26 @@ async def update_pin(pin_data: dict):
     return {"status": "success"}
 
 @app.get("/get-pin-options")
-async def get_pin_options():
+async def get_pin_options(request: Request):
     """Get 4 PIN options, including the valid PIN in a random position"""
-    global CURRENT_PIN
-    if CURRENT_PIN is None:
+    step_up_id = request.query_params.get('step_up_id')
+    if not step_up_id:
         return JSONResponse(
             status_code=404,
-            content={"error": "No active PIN"}
+            content={"error": "No step_up_id provided"}
+        )
+    
+    stored_pin = step_up_pins.get(step_up_id)
+    if not stored_pin:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "No PIN found for step_up_id"}
         )
     
     # Generate 3 additional random PINs
-    pins = {CURRENT_PIN}  # Use set to avoid duplicates
+    pins = {stored_pin}  # Use set to avoid duplicates
     while len(pins) < 4:
-        pins.add(random.randint(10000, 99999))
+        pins.add(str(random.randint(10000, 99999)))
     
     # Convert to list and shuffle
     pin_options = list(pins)
