@@ -364,17 +364,19 @@ class Stronghold {
             return;
         }
         
-        // Recreate the QR code structure
-        stepUpContainer.innerHTML = `
-            <div id="qrcode" style="margin: 0 auto;"></div>
-            <div id="step-up-id"></div>
-        `;
+        // Clear the container
+        stepUpContainer.innerHTML = '';
         
-        const qrcodeDiv = document.getElementById('qrcode');
-        if (!qrcodeDiv) {
-            console.error('QR code div not found');
-            return;
-        }
+        // Create QR code div
+        const qrcodeDiv = document.createElement('div');
+        qrcodeDiv.id = 'qrcode';
+        qrcodeDiv.style.margin = '0 auto';
+        stepUpContainer.appendChild(qrcodeDiv);
+        
+        // Create step-up ID div
+        const stepUpIdDiv = document.createElement('div');
+        stepUpIdDiv.id = 'step-up-id';
+        stepUpContainer.appendChild(stepUpIdDiv);
         
         // Create new inner div for QR code
         const newQrDiv = document.createElement('div');
@@ -392,13 +394,10 @@ class Stronghold {
         });
 
         // Create step-up ID display
-        const stepUpIdDiv = document.getElementById('step-up-id');
-        if (stepUpIdDiv) {
-            stepUpIdDiv.textContent = stepUpId;
-            stepUpIdDiv.style.fontFamily = 'monospace';
-            stepUpIdDiv.style.marginTop = '10px';
-            stepUpIdDiv.style.fontSize = '12px';
-        }
+        stepUpIdDiv.textContent = stepUpId;
+        stepUpIdDiv.style.fontFamily = 'monospace';
+        stepUpIdDiv.style.marginTop = '10px';
+        stepUpIdDiv.style.fontSize = '12px';
     } catch (error) {
         console.error('Error displaying step-up ID:', error);
         const stepUpContainer = document.getElementById('step-up-container');
