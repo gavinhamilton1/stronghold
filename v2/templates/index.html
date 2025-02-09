@@ -85,8 +85,13 @@
 <body>
     <div class="container">
         <h1>Stronghold Step-up Demo</h1>
-        <div style="color: #666; margin-bottom: 10px;">Version 2.0.38</div>
-        
+        <div style="color: #666; margin-bottom: 10px;">Version 2.0.39</div>
+        <div style="margin-bottom: 20px; text-align: center;">
+            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                https://stronghold.onrender.com/mobile
+            </div>
+        </div>
+    
         <!-- Ionic Segment Control -->
         <ion-segment id="selector" style="max-width: 500px; margin: 20px auto;">
             <ion-segment-button value="qr">
@@ -99,11 +104,6 @@
         
         <!-- Content Sections -->
         <div id="qr-code" class="content active">
-            <div style="margin-bottom: 20px; text-align: center;">
-                <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                    https://stronghold.onrender.com/mobile
-                </div>
-            </div>
             <div id="step-up-container"></div>
         </div>
         
@@ -213,16 +213,19 @@
                     sections[selectedValue].classList.add("active");
                     
                     if (selectedValue === 'pin-selector') {
-                        const pin = generateRandomPin();
-                        document.getElementById('browser-pin').textContent = pin;
-                        // Send PIN to server
-                        fetch('/update-pin', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ pin })
-                        }).catch(error => console.error('Error updating PIN:', error));
+                        // Start step-up process first
+                        startStepUp().then(() => {
+                            // Then generate and send PIN
+                            const pin = generateRandomPin();
+                            document.getElementById('browser-pin').textContent = pin;
+                            fetch('/update-pin', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ pin })
+                            }).catch(error => console.error('Error updating PIN:', error));
+                        });
                     }
                 }
             });
