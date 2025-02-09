@@ -61,42 +61,43 @@ class Stronghold {
     this.aalUpdated = false;
   }
 
-  async initializeStepUp(containerElementId, sseUrl) {
-    console.log('Initializing step-up with container:', containerElementId);
+  async initializeStepUp(containerId, sseEndpoint) {
+    this.containerElement = document.getElementById(containerId);
     
-    this.containerElement = document.getElementById(containerElementId);
-    if (!this.containerElement) {
-        throw new Error('Container element not found');
-    }
+    // Set up SSE connection
+    const eventSource = new EventSource(sseEndpoint);
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('SSE message received:', data);
+      
+      if (data.type === 'step_up_initiated') {
+        this.handleStepUpInitiated(data.step_up_id);
+      } else if (data.type === 'auth_level_changed') {
+        this.handleAuthLevelChange(data.level);
+      }
+    };
+    
+    // Wait for client ID
+    return new Promise((resolve) => {
+      eventSource.addEventListener('client_id', (event) => {
+        const data = JSON.parse(event.data);
+        resolve(data.client_id);
+      });
+    });
+  }
 
-    // Close any existing SSE connection
-    if (this.eventSource) {
-        console.log('Closing existing SSE connection');
-        this.eventSource.close();
-        this.eventSource = null;
-    }
-
-    try {
-        // Try SSE first
-        console.log('Attempting SSE connection...');
-        this.eventSource = new EventSource(sseUrl);
-        
-        try {
-            return await this.setupSSE();
-        } catch (sseError) {
-            console.log('SSE connection failed:', sseError);
-            // Clean up failed SSE connection
-            if (this.eventSource) {
-                this.eventSource.close();
-                this.eventSource = null;
-            }
-            // Fall back to polling
-            console.log('Falling back to polling...');
-            return await this.setupPolling();
-        }
-    } catch (error) {
-        console.error('Fatal connection error:', error);
-        throw error;
+  handleAuthLevelChange(level) {
+    console.log('Auth level changed to:', level);
+    const authLevelDiv = document.getElementById('auth-level');
+    const downgradeButton = document.getElementById('downgrade-button');
+    
+    if (level === 'AAL3') {
+      authLevelDiv.textContent = 'Auth Level: AAL3';
+      downgradeButton.style.display = 'block';
+    } else {
+      authLevelDiv.textContent = 'Auth Level: AAL2';
+      downgradeButton.style.display = 'none';
     }
   }
 

@@ -345,7 +345,6 @@ class MobileStepUp {
     async handlePinSelection(selectedPin) {
         try {
             window.mobileDebug.log(`Submitting PIN to server`);
-            // Immediately trigger biometric authentication
             await this.authenticateWithBiometrics()
                 .then(() => {
                     // Clear PIN options after successful biometric auth
@@ -358,7 +357,10 @@ class MobileStepUp {
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ pin: selectedPin })
+                        body: JSON.stringify({ 
+                            pin: selectedPin,
+                            step_up_id: this.stepUpId  // Include step_up_id in verification
+                        })
                     });
                 })
                 .then(response => response.json())
@@ -369,16 +371,9 @@ class MobileStepUp {
                         this.handleSuccessfulAuth();
                     } else {
                         mobileDebug.error('Incorrect PIN selected');
-                        // Show error message in place of PIN options
                         const pinOptions = document.getElementById('pin-options');
                         pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Incorrect PIN. Please try again with QR code.</div>';
                     }
-                })
-                .catch(error => {
-                    mobileDebug.error('Error in authentication process: ' + error);
-                    // Show error message in place of PIN options
-                    const pinOptions = document.getElementById('pin-options');
-                    pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Authentication failed. Please try again with QR code.</div>';
                 });
         } catch (error) {
             window.mobileDebug.error('Network error');
