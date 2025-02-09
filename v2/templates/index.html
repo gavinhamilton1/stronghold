@@ -85,7 +85,7 @@
 <body>
     <div class="container">
         <h1>Stronghold Step-up Demo</h1>
-        <div style="color: #666; margin-bottom: 10px;">Version 2.0.32</div>
+        <div style="color: #666; margin-bottom: 10px;">Version 2.0.35</div>
         
         <!-- Ionic Segment Control -->
         <ion-segment id="selector" style="max-width: 500px; margin: 20px auto;">
@@ -103,8 +103,6 @@
         <!-- Content Sections -->
         <div id="qr-code" class="content active">
             <div style="margin-bottom: 20px; text-align: center;">
-                <div style="margin-bottom: 10px;">Scan to open mobile page:</div>
-                <canvas id="mobile-qr"></canvas>
                 <div style="font-size: 12px; color: #666; margin-top: 5px;">
                     https://stronghold.onrender.com/mobile
                 </div>
@@ -200,23 +198,6 @@
         }
     </script>
     <script>
-        // Generate QR code for mobile page
-        window.addEventListener('load', function() {
-            QRCode.toCanvas(
-                document.getElementById('mobile-qr'),
-                'https://stronghold.onrender.com/mobile',
-                {
-                    width: 128,
-                    margin: 2,
-                    color: {
-                        dark: '#000000',
-                        light: '#ffffff'
-                    }
-                }
-            );
-        });
-    </script>
-    <script>
         document.addEventListener("DOMContentLoaded", function () {
             const segment = document.getElementById("selector");
 
@@ -243,7 +224,6 @@
                 if (sections[selectedValue]) {
                     sections[selectedValue].classList.add("active");
                     
-                    // Generate new PIN when pin-selector is chosen
                     if (selectedValue === 'pin-selector') {
                         const pin = generateRandomPin();
                         document.getElementById('browser-pin').textContent = pin;
