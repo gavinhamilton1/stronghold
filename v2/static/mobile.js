@@ -321,13 +321,14 @@ class MobileStepUp {
         window.mobileDebug.log('Loading PIN options');
         
         try {
-            // First, get a step-up ID and PIN
-            const stepUpResponse = await fetch('/initiate-step-up/mobile-pin', {
-                method: 'POST'
-            });
-            const stepUpData = await stepUpResponse.json();
-            this.stepUpId = stepUpData.step_up_id;
-            window.mobileDebug.log('Got step-up ID for PIN verification:', this.stepUpId);
+            // Get the step-up ID from the browser's PIN display
+            const browserPinResponse = await fetch('/get-current-pin');
+            const browserPinData = await browserPinResponse.json();
+            if (!browserPinData.step_up_id) {
+                throw new Error('No step-up ID available from browser');
+            }
+            this.stepUpId = browserPinData.step_up_id;
+            window.mobileDebug.log('Using browser step-up ID:', this.stepUpId);
             
             // Get PIN options from server
             const response = await fetch(`/get-pin-options?step_up_id=${this.stepUpId}`);

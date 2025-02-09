@@ -327,7 +327,17 @@ async def get_current_pin():
             status_code=404,
             content={"error": "No active PIN"}
         )
-    return {"pin": CURRENT_PIN}
+    # Find the step-up ID for the current PIN
+    step_up_id = None
+    for sid, pin in step_up_pins.items():
+        if pin == CURRENT_PIN:
+            step_up_id = sid
+            break
+    
+    return {
+        "pin": CURRENT_PIN,
+        "step_up_id": step_up_id
+    }
 
 @app.post("/verify-pin")
 async def verify_pin(pin_data: dict):
