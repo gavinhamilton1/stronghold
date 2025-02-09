@@ -410,7 +410,26 @@ class MobileStepUp {
     }
 
     handleSuccessfulAuth() {
-        // Implementation of handleSuccessfulAuth method
+        try {
+            // Connect WebSocket if not already connected
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                this.connectWebSocket();
+            }
+            
+            // Send auth complete message to update auth level
+            this.sendAuthComplete();
+            
+            // Show success message
+            const pinOptions = document.getElementById('pin-options');
+            pinOptions.innerHTML = '<div style="color: green; text-align: center; padding: 20px;">Authentication successful! Auth level upgraded to AAL3.</div>';
+            
+            // Show message input
+            document.getElementById('input-container').style.display = 'block';
+        } catch (error) {
+            window.mobileDebug.error('Error in handleSuccessfulAuth: ' + error);
+            const pinOptions = document.getElementById('pin-options');
+            pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Error completing authentication. Please try again.</div>';
+        }
     }
 }
 
