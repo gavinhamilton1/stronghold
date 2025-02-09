@@ -209,12 +209,6 @@ class Stronghold {
         }
     });
 
-    // Listen for auth complete
-    this.eventSource.addEventListener('auth_complete', () => {
-        console.log('Received auth complete event');
-        this.handleAuthComplete();
-    });
-
     // Listen for mobile messages
     this.eventSource.addEventListener('mobile_message', (event) => {
         console.log('Received mobile message:', event);
@@ -223,8 +217,16 @@ class Stronghold {
 
     // Add event listener for auth_complete event
     this.eventSource.addEventListener('auth_complete', (event) => {
-        console.log('Received auth_complete event:', event);
-        this.handleAuthComplete();
+        console.log('Received auth_complete event with data:', event.data);
+        try {
+            // Parse the event data if it's a string
+            if (typeof event.data === 'string') {
+                JSON.parse(event.data);
+            }
+            this.handleAuthComplete();
+        } catch (error) {
+            console.error('Error processing auth_complete event:', error);
+        }
     });
   }
 
@@ -259,16 +261,19 @@ class Stronghold {
         authLevelDiv.textContent = 'Auth Level: AAL3';
         authLevelDiv.style.color = '#fd7e14';
         localStorage.setItem('authLevel', 'AAL3');
+        console.log('Updated auth level display and localStorage');
     }
     
     // Show downgrade button
     const downgradeButton = document.getElementById('downgrade-button');
     if (downgradeButton) {
         downgradeButton.style.display = 'block';
+        console.log('Showed downgrade button');
     }
     
     // Update step-up container
     if (this.containerElement) {
+        console.log('Updating step-up container with completion message');
         this.containerElement.innerHTML = `
             <div style="text-align: center; padding: 20px;">
                 <h3 style="color: #28a745;">Step-up Complete!</h3>
@@ -278,6 +283,7 @@ class Stronghold {
     }
     
     // Start AAL timer
+    console.log('Starting AAL timer');
     this.startAALTimer(20);
   }
 
