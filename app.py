@@ -74,6 +74,12 @@ async def mobile(request: Request):
     """Serve mobile page"""
     return templates.TemplateResponse("mobile.html", {"request": request})
 
+@app.get("/webauthn", response_class=HTMLResponse)
+async def mobile(request: Request):
+    """Serve webauthn page"""
+    return templates.TemplateResponse("webauthn.html", {"request": request})
+
+
 @app.get("/register-sse")
 async def register_sse(request: Request):
     """
