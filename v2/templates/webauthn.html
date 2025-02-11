@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAuthn SEK Example</title>
+</head>
+<body>
+
+    <h2>WebAuthn + Stronghold SEK Request</h2>
+    <button onclick="createWebAuthnKey()">Register WebAuthn Key</button>
+    <button onclick="requestSEK()">Request SEK</button>
+
+    <script>
+        let credentialId; // Stores credential ID for later authentication
+
+        async function createWebAuthnKey() {
+            const publicKeyCredentialCreationOptions = {
+                challenge: new Uint8Array(32), // Simulated challenge from server
+                rp: { name: "Your Company" },
+                user: {
+                    id: new Uint8Array(16), // Unique user ID
+                    name: "user@example.com",
+                    displayName: "User",
+                },
+                pubKeyCredParams: [{ alg: -7, type: "public-key" }], // ECDSA P-256
+                authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "preferred" },
+                attestation: "none"
+            };
+
+            try {
+                const credential = await navigator.credentials.create({ publicKey: publicKeyCredentialCreationOptions });
+                credentialId = credential.rawId;
+                console.log("WebAuthn Credential Created:", credential);
+                alert("WebAuthn key registered successfully!");
+            } catch (err) {
+                console.error("WebAuthn Error:", err);
+                alert("WebAuthn registration failed.");
+            }
+        }
+
+        async function signWithWebAuthn(challengeFromServer) {
+            const publicKeyCredentialRequestOptions = {
+                challenge: challengeFromServer, // Challenge from backend
+                allowCredentials: credentialId ? [{ id: credentialId, type: "public-key" }] : [],
+                userVerification: "preferred"
+            };
+
+            try {
+                const credential = await navigator.credentials.get({ publicKey: publicKeyCredentialRequestOptions });
+                console.log("Signed Challenge:", credential.response.signature);
+                return credential.response.signature;
+            } catch (err) {
+                console.error("WebAuthn Signing Error:", err);
+                alert("WebAuthn signing failed.");
+            }
+        }
+
+        async function requestSEK() {
+            try {
+                // Step 1: Get a challenge from Stronghold
+                const challengeResponse = await fetch("https://stronghold.yourcompany.com/challenge");
+                const challenge = await challengeResponse.arrayBuffer();
+
+                // Step 2: Sign the challenge using WebAuthn
+                const signedChallenge = await signWithWebAuthn(challenge);
+
+                // Step 3: Request SEK from Stronghold
+                const response = await fetch("https://stronghold.yourcompany.com/get-sek", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ signedChallenge: btoa(signedChallenge) }),
+                });
+
+                const encryptedSEK = await response.json();
+                console.log("Received Encrypted SEK:", encryptedSEK);
+                alert("SEK received successfully! Check console for details.");
+            } catch (err) {
+                console.error("Error Requesting SEK:", err);
+                alert("Failed to request SEK.");
+            }
+        }
+    </script>
+
+</body>
+</html>
