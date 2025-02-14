@@ -16,6 +16,9 @@ import random
 import ssl
 import hashlib
 from OpenSSL import SSL
+import tempfile
+import subprocess
+import base64
 
 app = FastAPI()
 
@@ -512,6 +515,54 @@ async def get_cert_info():
         return JSONResponse(
             status_code=500,
             content={"error": "Failed to get certificate information"}
+        )
+
+@app.get("/generate-domain-wasm")
+async def generate_domain_wasm():
+    """Generate a WASM module that returns the domain name"""
+    try:
+        # Create a temporary directory for our files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Copy the C source file to temp directory
+            c_file = f"{temp_dir}/domain.c"
+            with open("v2/static/domain.c", "r") as src, open(c_file, "w") as dst:
+                dst.write(src.read())
+            
+            # Compile to WASM using emscripten
+            wasm_file = f"{temp_dir}/domain.wasm"
+            result = subprocess.run([
+                "emcc",
+                c_file,
+                "-o", wasm_file,
+                "-s", "WASM=1",
+                "-s", "EXPORTED_FUNCTIONS=['_get_domain']",
+                "-s", "EXPORTED_RUNTIME_METHODS=['ccall','cwrap']"
+            ], capture_output=True)
+            
+            if result.returncode != 0:
+                raise Exception(f"Compilation failed: {result.stderr.decode()}")
+            
+            # Read the generated WASM file
+            with open(wasm_file, "rb") as f:
+                wasm_bytes = f.read()
+            
+            # Return both the WASM binary and the JavaScript loader
+            return {
+                "wasm_base64": base64.b64encode(wasm_bytes).decode(),
+                "js_loader": """
+                    Module.onRuntimeInitialized = function() {
+                        const getDomain = Module.cwrap('get_domain', 'string', []);
+                        const domain = getDomain();
+                        document.getElementById('wasm-result').textContent = 
+                            `Domain from WASM: ${domain}`;
+                    };
+                """
+            }
+    except Exception as e:
+        logger.error(f"Error generating WASM: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to generate WASM: {str(e)}"}
         )
 
 if __name__ == "__main__":

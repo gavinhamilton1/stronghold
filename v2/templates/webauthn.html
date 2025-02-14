@@ -54,6 +54,12 @@
         <h1>WebAuthn Certificate Hash</h1>
         <button id="get-cert-hash">Get Certificate Hash</button>
         <div id="cert-hash"></div>
+
+        <div style="margin-top: 20px;">
+            <h2>WASM Domain Test</h2>
+            <button id="get-domain-wasm">Get Domain via WASM</button>
+            <div id="wasm-result" style="margin-top: 10px; font-family: monospace;"></div>
+        </div>
     </div>
 
     <script>
@@ -157,6 +163,54 @@
                 console.error('Error getting certificate hash:', error);
                 hashDisplay.innerHTML = `<div class="error">
                     Unable to retrieve certificate information.
+                    <br><br>
+                    Error details: ${error.message}
+                </div>`;
+            }
+        });
+
+        // Add WASM domain getter
+        document.getElementById('get-domain-wasm').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('wasm-result');
+            try {
+                resultDiv.textContent = 'Generating WASM...';
+                
+                // Get the WASM module from the server
+                const response = await fetch('/generate-domain-wasm');
+                if (!response.ok) {
+                    throw new Error('Failed to generate WASM');
+                }
+                const data = await response.json();
+                
+                // Convert base64 WASM to binary
+                const wasmBinary = Uint8Array.from(atob(data.wasm_base64), c => c.charCodeAt(0));
+                
+                // Create script element for the JavaScript loader
+                const script = document.createElement('script');
+                script.textContent = data.js_loader;
+                
+                // Initialize the WASM module
+                const wasmModule = await WebAssembly.instantiate(wasmBinary, {
+                    env: {
+                        emscripten_run_script_string: (ptr) => {
+                            const str = window.location.hostname;
+                            const length = Module.lengthBytesUTF8(str) + 1;
+                            const buffer = Module._malloc(length);
+                            Module.stringToUTF8(str, buffer, length);
+                            return buffer;
+                        }
+                    }
+                });
+                
+                // Add the module to window
+                window.Module = wasmModule.instance.exports;
+                
+                // Add and execute the loader script
+                document.body.appendChild(script);
+            } catch (error) {
+                console.error('Error loading WASM:', error);
+                resultDiv.innerHTML = `<div class="error">
+                    Failed to load WASM module.
                     <br><br>
                     Error details: ${error.message}
                 </div>`;
