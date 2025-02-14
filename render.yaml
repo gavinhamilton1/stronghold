@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: stronghold-stepup
+    env: docker
+    region: oregon  # or your preferred region
+    buildCommand: docker build -t stronghold-stepup .
+    startCommand: docker run -p 8000:8000 stronghold-stepup
+    envVars:
+      - key: PORT
+        value: 8000 
