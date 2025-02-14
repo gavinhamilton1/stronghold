@@ -4,12 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebAuthn SEK Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #cert-hash {
+            font-family: monospace;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            word-break: break-all;
+            max-width: 100%;
+            margin-top: 10px;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
 
     <h2>WebAuthn + Stronghold SEK Request</h2>
     <button onclick="createWebAuthnKey()">Register WebAuthn Key</button>
     <button onclick="requestSEK()">Request SEK</button>
+
+    <div class="container">
+        <h1>WebAuthn Certificate Hash</h1>
+        <button id="get-cert-hash">Get Certificate Hash</button>
+        <div id="cert-hash"></div>
+    </div>
 
     <script>
         let credentialId; // Stores credential ID for later authentication
@@ -80,6 +125,30 @@
                 alert("Failed to request SEK.");
             }
         }
+
+        async function getServerCertificateHash() {
+            const response = await fetch(window.location.origin, { method: 'HEAD' });
+            const securityInfo = await response.securityInfo();
+            
+            const rawCert = securityInfo.certificates[0].rawDER;
+            const certHash = await crypto.subtle.digest("SHA-256", rawCert);
+            
+            return Array.from(new Uint8Array(certHash))
+                .map(byte => byte.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        document.getElementById('get-cert-hash').addEventListener('click', async () => {
+            const hashDisplay = document.getElementById('cert-hash');
+            try {
+                hashDisplay.textContent = 'Calculating hash...';
+                const hash = await getServerCertificateHash();
+                hashDisplay.textContent = hash;
+            } catch (error) {
+                console.error('Error getting certificate hash:', error);
+                hashDisplay.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        });
     </script>
 
 </body>
