@@ -13,6 +13,9 @@ from fastapi.logger import logger
 import logging
 from pywebpush import webpush, WebPushException
 import random
+import ssl
+import hashlib
+from OpenSSL import SSL
 
 app = FastAPI()
 
@@ -477,6 +480,38 @@ async def generate_pin(request: Request):
         return JSONResponse(
             status_code=500,
             content={"error": str(e)}
+        )
+
+@app.get("/cert-info")
+async def get_cert_info():
+    """Get a hash of the server's certificate public information"""
+    try:
+        context = SSL.Context(SSL.TLSv1_2_METHOD)
+        connection = SSL.Connection(context)
+        cert = connection.get_peer_certificate()
+        
+        # Only expose public information
+        public_info = {
+            "issuer": cert.get_issuer().get_components(),
+            "subject": cert.get_subject().get_components(),
+            "serial_number": cert.get_serial_number(),
+            "not_before": cert.get_notBefore().decode(),
+            "not_after": cert.get_notAfter().decode()
+        }
+        
+        # Create a deterministic hash of the public info
+        hash_input = str(public_info).encode()
+        cert_hash = hashlib.sha256(hash_input).hexdigest()
+        
+        return {
+            "cert_hash": cert_hash,
+            "public_info": public_info
+        }
+    except Exception as e:
+        logger.error(f"Error getting certificate info: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Failed to get certificate information"}
         )
 
 if __name__ == "__main__":

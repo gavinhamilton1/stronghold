@@ -127,26 +127,39 @@
         }
 
         async function getServerCertificateHash() {
-            const response = await fetch(window.location.origin, { method: 'HEAD' });
-            const securityInfo = await response.securityInfo();
-            
-            const rawCert = securityInfo.certificates[0].rawDER;
-            const certHash = await crypto.subtle.digest("SHA-256", rawCert);
-            
-            return Array.from(new Uint8Array(certHash))
-                .map(byte => byte.toString(16).padStart(2, '0'))
-                .join('');
+            try {
+                const response = await fetch('/cert-info');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch certificate information');
+                }
+                const data = await response.json();
+                return {
+                    hash: data.cert_hash,
+                    info: data.public_info
+                };
+            } catch (error) {
+                throw new Error('Unable to access certificate information: ' + error.message);
+            }
         }
 
         document.getElementById('get-cert-hash').addEventListener('click', async () => {
             const hashDisplay = document.getElementById('cert-hash');
             try {
                 hashDisplay.textContent = 'Calculating hash...';
-                const hash = await getServerCertificateHash();
-                hashDisplay.textContent = hash;
+                const certInfo = await getServerCertificateHash();
+                hashDisplay.innerHTML = `
+                    <div>Certificate Hash: ${certInfo.hash}</div>
+                    <div style="margin-top: 10px; font-size: 12px;">
+                        <pre>${JSON.stringify(certInfo.info, null, 2)}</pre>
+                    </div>
+                `;
             } catch (error) {
                 console.error('Error getting certificate hash:', error);
-                hashDisplay.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                hashDisplay.innerHTML = `<div class="error">
+                    Unable to retrieve certificate information.
+                    <br><br>
+                    Error details: ${error.message}
+                </div>`;
             }
         });
     </script>

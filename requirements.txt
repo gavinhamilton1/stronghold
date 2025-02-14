@@ -4,3 +4,4 @@ sse-starlette
 jinja2
 websockets
 pywebpush
+pyOpenSSL
