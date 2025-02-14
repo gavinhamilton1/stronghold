@@ -5,4 +5,3 @@ jinja2
 websockets
 pywebpush
 pyOpenSSL
-emscripten
