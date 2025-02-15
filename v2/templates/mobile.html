@@ -48,25 +48,6 @@
         button:disabled {
             background: #ccc;
         }
-        #debug-panel {
-            margin-top: 20px;
-            padding: 10px;
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .debug-message {
-            margin: 5px 0;
-            padding: 3px;
-            border-bottom: 1px solid #eee;
-        }
-        .debug-error {
-            color: red;
-        }
         .content {
             display: none;
             margin-top: 20px;
@@ -106,27 +87,16 @@
             <input type="text" id="message-input" placeholder="Type message...">
             <button id="send-message">Send</button>
         </div>
-        <div id="debug-panel"></div>
     </div>
 
     <script>
-        // Add debug logging function
+        // Add console logging wrapper
         window.mobileDebug = {
             log: function(message) {
-                const panel = document.getElementById('debug-panel');
-                const div = document.createElement('div');
-                div.className = 'debug-message';
-                div.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
-                panel.appendChild(div);
-                panel.scrollTop = panel.scrollHeight;
+                console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
             },
             error: function(message) {
-                const panel = document.getElementById('debug-panel');
-                const div = document.createElement('div');
-                div.className = 'debug-message debug-error';
-                div.textContent = `${new Date().toLocaleTimeString()}: ERROR: ${message}`;
-                panel.appendChild(div);
-                panel.scrollTop = panel.scrollHeight;
+                console.error(`[${new Date().toLocaleTimeString()}] ERROR: ${message}`);
             }
         };
     </script>
