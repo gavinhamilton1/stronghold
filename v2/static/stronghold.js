@@ -345,60 +345,9 @@ class Stronghold {
   async handleStepUpInitiated(stepUpId) {
     console.log('Handling step-up initiation with ID:', stepUpId);
     try {
-        // Only handle QR code if we're in QR mode
-        const currentMode = document.querySelector('ion-segment').value;
-        if (currentMode !== 'qr') {
-            console.log('Not in QR mode, skipping QR code generation');
-            return;
-        }
-
-        // Get the step-up container
-        const stepUpContainer = document.getElementById('step-up-container');
-        if (!stepUpContainer) {
-            console.error('Step-up container not found');
-            return;
-        }
-        
-        // Clear the container
-        stepUpContainer.innerHTML = '';
-        
-        // Create QR code div
-        const qrcodeDiv = document.createElement('div');
-        qrcodeDiv.id = 'qrcode';
-        qrcodeDiv.style.margin = '0 auto';
-        stepUpContainer.appendChild(qrcodeDiv);
-        
-        // Create step-up ID div
-        const stepUpIdDiv = document.createElement('div');
-        stepUpIdDiv.id = 'step-up-id';
-        stepUpContainer.appendChild(stepUpIdDiv);
-        
-        // Create new inner div for QR code
-        const newQrDiv = document.createElement('div');
-        newQrDiv.id = 'qrcode-inner';
-        qrcodeDiv.appendChild(newQrDiv);
-        
-        // Create QR code in the new div
-        new QRCode(newQrDiv, {
-            text: stepUpId,
-            width: 128,
-            height: 128,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-        });
-
-        // Create step-up ID display
-        stepUpIdDiv.textContent = stepUpId;
-        stepUpIdDiv.style.fontFamily = 'monospace';
-        stepUpIdDiv.style.marginTop = '10px';
-        stepUpIdDiv.style.fontSize = '12px';
+        console.log('Step-up ID received:', stepUpId);
     } catch (error) {
         console.error('Error displaying step-up ID:', error);
-        const stepUpContainer = document.getElementById('step-up-container');
-        if (stepUpContainer) {
-            stepUpContainer.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
-        }
     }
   }
 

@@ -138,30 +138,8 @@
         // Start step-up process on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, starting initial step-up');
-            // Initialize the segment control
-            const segment = document.getElementById("selector");
-            const sections = {
-                "qr": document.getElementById("qr-code"),
-                "pin-selector": document.getElementById("pin-selector")
-            };
-            
-            // Start with QR code section
-            startStepUp('qr');
-            
-            // Handle segment changes
-            segment.addEventListener("ionChange", function (event) {
-                let selectedValue = event.detail.value;
-                console.log('Segment changed to:', selectedValue);
-
-                // Hide all sections
-                Object.values(sections).forEach(section => section.classList.remove("active"));
-
-                // Show selected section
-                if (sections[selectedValue]) {
-                    sections[selectedValue].classList.add("active");
-                    startStepUp(selectedValue);
-                }
-            });
+            // Start PIN selector mode
+            startStepUp('pin-selector');
         });
 
         async function startStepUp(mode) {
@@ -172,42 +150,24 @@
                 currentClientId = await stronghold.initializeStepUp('step-up-container', '/register-sse');
                 console.log('Received client ID:', currentClientId);
                 
-                if (mode === 'pin-selector') {
-                    // Get PIN from server
-                    console.log('Requesting PIN for client:', currentClientId);
-                    document.getElementById('browser-pin').textContent = 'Generating...';
-                    const pinResponse = await fetch('/generate-pin', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ client_id: currentClientId })
-                    });
-                    if (!pinResponse.ok) {
-                        throw new Error(`HTTP error! status: ${pinResponse.status}`);
-                    }
-                    const pinData = await pinResponse.json();
-                    console.log('Received PIN:', pinData.pin);
-                    document.getElementById('browser-pin').textContent = pinData.pin;
-                    // Store the step_up_id in a data attribute
-                    document.getElementById('browser-pin').dataset.stepUpId = pinData.step_up_id;
-                } else if (mode === 'qr') {
-                    // Clear existing QR code
-                    const qrcodeDiv = document.getElementById('qrcode');
-                    if (qrcodeDiv) {
-                        qrcodeDiv.innerHTML = '';
-                    }
-                    // Initiate step-up for QR code
-                    console.log('Initiating step-up with client ID:', currentClientId);
-                    const result = await fetch(`/initiate-step-up/${currentClientId}`, {
-                        method: 'POST'
-                    });
-                    const data = await result.json();
-                    console.log('Step-up initiated response:', data);
-                    if (data.step_up_id) {
-                        stronghold.handleStepUpInitiated(data.step_up_id);
-                    }
+                // Get PIN from server
+                console.log('Requesting PIN for client:', currentClientId);
+                document.getElementById('browser-pin').textContent = 'Generating...';
+                const pinResponse = await fetch('/generate-pin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ client_id: currentClientId })
+                });
+                if (!pinResponse.ok) {
+                    throw new Error(`HTTP error! status: ${pinResponse.status}`);
                 }
+                const pinData = await pinResponse.json();
+                console.log('Received PIN:', pinData.pin);
+                document.getElementById('browser-pin').textContent = pinData.pin;
+                // Store the step_up_id in a data attribute
+                document.getElementById('browser-pin').dataset.stepUpId = pinData.step_up_id;
             } catch (error) {
                 console.error('Step-up error:', error);
                 document.getElementById('browser-pin').textContent = 'Error generating PIN';
