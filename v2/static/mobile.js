@@ -1,187 +1,58 @@
 class MobileStepUp {
     constructor() {
-        this.scanner = null;
         this.stepUpId = null;
         this.credentialId = null;
-        this.setupScanAgainButton();
-        this.setupSegmentControl();
-    }
-
-    setupScanAgainButton() {
-        const scanAgainButton = document.getElementById('scan-again');
-        scanAgainButton.onclick = () => {
-            // Hide input container and scan button
-            document.getElementById('input-container').style.display = 'none';
-            scanAgainButton.style.display = 'none';
-            
-            // Show and start scanner
-            document.getElementById('reader').style.display = 'block';
-            this.startQRScanner();
-            
-            // Close existing WebSocket if any
-            if (this.ws) {
-                this.ws.close();
-            }
-        };
+        this.init();
     }
 
     async init() {
-        // Start camera immediately if we're in QR section
-        if (document.querySelector('ion-segment').value === 'qr') {
-            this.setupQRScanner();
-            this.startQRScanner();
-        }
+        await this.loadPinOptions();
         this.setupMessageInput();
     }
 
-    setupQRScanner() {
-        const readerDiv = document.getElementById('reader');
-        readerDiv.style.display = 'block';  // Show scanner immediately
-        this.scanner = new Html5Qrcode("reader");
-    }
-
-    startQRScanner() {
-        window.mobileDebug.log('Starting QR scanner');
+    async loadPinOptions() {
+        const pinOptions = document.getElementById('pin-options');
+        window.mobileDebug.log('Loading PIN options');
         
-        this.scanner.start(
-            { facingMode: "environment" },
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-            },
-            this.handleQRCode.bind(this)
-        ).catch(error => {
-            window.mobileDebug.error('Error starting QR scanner: ' + error);
-            alert('Failed to start camera');
-        });
-    }
-
-    async handleQRCode(stepUpId) {
-        window.mobileDebug.log('QR Code scanned:', stepUpId);
-        this.scanner.stop();
-        document.getElementById('reader').style.display = 'none';
-        this.stepUpId = stepUpId;
-
-        // Show scan again button
-        document.getElementById('scan-again').style.display = 'block';
-
-        window.mobileDebug.log('Connecting WebSocket...');
-        // Connect WebSocket before authentication
-        this.connectWebSocket();
-
-        window.mobileDebug.log('Starting authentication...');
-        // Immediately start authentication
-        await this.handleAuthentication();
-    }
-
-    async handleAuthentication() {
         try {
-            // Try to authenticate first with strict biometric requirements
-            const assertion = await navigator.credentials.get({
-                publicKey: {
-                    challenge: new Uint8Array(32),
-                    rpId: window.location.hostname,
-                    userVerification: "required",
-                }
-            });
+            // Get the step-up ID from the browser's PIN display
+            const browserPinResponse = await fetch('/get-current-pin');
+            if (!browserPinResponse.ok) {
+                throw new Error('No active PIN available. Please generate a PIN in the browser first.');
+            }
+            const browserPinData = await browserPinResponse.json();
+            if (!browserPinData.step_up_id) {
+                throw new Error('No step-up ID available from browser');
+            }
+            this.stepUpId = browserPinData.step_up_id;
+            window.mobileDebug.log('Using browser step-up ID:', this.stepUpId);
             
-            if (assertion) {
-                window.mobileDebug.log('Successfully authenticated with existing passkey');
-                this.connectWebSocket();
-                document.getElementById('input-container').style.display = 'block';
-                
-                // Send auth complete message
-                await this.sendAuthComplete();
-                return;
+            // Get PIN options from server
+            const response = await fetch(`/get-pin-options?step_up_id=${this.stepUpId}`);
+            if (!response.ok) {
+                throw new Error('Failed to get PIN options. Please make sure a PIN is generated in the browser.');
             }
+            const { pins } = await response.json();
+            
+            // Create buttons for each PIN
+            pinOptions.innerHTML = pins.map(pin => `
+                <button class="pin-option" onclick="mobileStepUp.handlePinSelection(${pin})" style="color: black;">
+                    ${String(pin).padStart(5, '0')}
+                </button>
+            `).join('');
+            
+            window.mobileDebug.log('PIN options loaded');
         } catch (error) {
-            // If authentication fails, try registration with strict biometric requirements
-            window.mobileDebug.log('No existing passkey, attempting registration');
-            try {
-                const publicKey = {
-                    challenge: new Uint8Array(32),
-                    rp: {
-                        name: "Stronghold Step-up",
-                        id: window.location.hostname
-                    },
-                    user: {
-                        id: new Uint8Array(16),
-                        name: "stronghold-user",
-                        displayName: "Stronghold User"
-                    },
-                    pubKeyCredParams: [{alg: -7, type: "public-key"}],
-                    authenticatorSelection: {
-                        authenticatorAttachment: "platform",
-                        userVerification: "required",
-                        requireResidentKey: true,
-                        residentKey: "required"
-                    },
-                    attestation: "direct",
-                    extensions: {
-                        credProps: true,
-                        uvm: true
-                    }
-                };
-
-                const credential = await navigator.credentials.create({
-                    publicKey
-                });
-                
-                if (credential) {
-                    window.mobileDebug.log('Successfully registered new passkey');
-                    this.connectWebSocket();
-                    document.getElementById('input-container').style.display = 'block';
-                    
-                    // Send auth complete message after registration too
-                    await this.sendAuthComplete();
-                }
-            } catch (regError) {
-                window.mobileDebug.error('Failed to register passkey: ' + regError);
-                alert('Biometric setup failed');
-            }
+            window.mobileDebug.error('Error loading PIN options: ' + error);
+            pinOptions.innerHTML = `
+                <div style="color: red; text-align: center; padding: 20px;">
+                    ${error.message}
+                    <br><br>
+                    <button onclick="mobileStepUp.loadPinOptions()" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px;">
+                        Try Again
+                    </button>
+                </div>`;
         }
-    }
-
-    async sendAuthComplete() {
-        try {
-            // Wait for WebSocket to be ready
-            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-                await new Promise((resolve) => {
-                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                        resolve();
-                    } else {
-                        this.ws.onopen = () => resolve();
-                    }
-                });
-            }
-
-            // Send auth complete message
-            console.log('Sending auth_complete message');
-            this.ws.send(JSON.stringify({
-                type: 'auth_complete'
-            }));
-        } catch (error) {
-            console.error('Error sending auth complete:', error);
-        }
-    }
-
-    connectWebSocket() {
-        window.mobileDebug.log(`Setting up WebSocket for step_up_id: ${this.stepUpId}`);
-        this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.stepUpId}`);
-        
-        this.ws.onopen = () => {
-            window.mobileDebug.log('WebSocket connection established');
-            document.getElementById('input-container').style.display = 'block';
-        };
-        
-        this.ws.onclose = () => {
-            window.mobileDebug.log('WebSocket connection closed');
-            document.getElementById('input-container').style.display = 'none';
-        };
-        
-        this.ws.onerror = (error) => {
-            window.mobileDebug.error('WebSocket error: ' + error);
-        };
     }
 
     setupMessageInput() {
@@ -288,79 +159,6 @@ class MobileStepUp {
         return outputArray;
     }
 
-    setupSegmentControl() {
-        const segment = document.getElementById('selector');
-        const sections = {
-            'qr': document.getElementById('qr-code'),
-            'pin-selector': document.getElementById('pin-selector'),
-            'pin-entry': document.getElementById('pin-entry')
-        };
-
-        segment.addEventListener('ionChange', async (event) => {
-            // Hide all sections
-            Object.values(sections).forEach(section => section.classList.remove('active'));
-            
-            // Show selected section
-            const selectedValue = event.detail.value;
-            if (sections[selectedValue]) {
-                sections[selectedValue].classList.add('active');
-            }
-
-            // Handle section-specific initialization
-            if (selectedValue === 'qr') {
-                this.setupQRScanner();
-                this.startQRScanner();
-            } else if (selectedValue === 'pin-selector') {
-                await this.loadPinOptions();
-            }
-        });
-    }
-
-    async loadPinOptions() {
-        const pinOptions = document.getElementById('pin-options');
-        window.mobileDebug.log('Loading PIN options');
-        
-        try {
-            // Get the step-up ID from the browser's PIN display
-            const browserPinResponse = await fetch('/get-current-pin');
-            if (!browserPinResponse.ok) {
-                throw new Error('No active PIN available. Please generate a PIN in the browser first.');
-            }
-            const browserPinData = await browserPinResponse.json();
-            if (!browserPinData.step_up_id) {
-                throw new Error('No step-up ID available from browser');
-            }
-            this.stepUpId = browserPinData.step_up_id;
-            window.mobileDebug.log('Using browser step-up ID:', this.stepUpId);
-            
-            // Get PIN options from server
-            const response = await fetch(`/get-pin-options?step_up_id=${this.stepUpId}`);
-            if (!response.ok) {
-                throw new Error('Failed to get PIN options. Please make sure a PIN is generated in the browser.');
-            }
-            const { pins } = await response.json();
-            
-            // Create buttons for each PIN
-            pinOptions.innerHTML = pins.map(pin => `
-                <button class="pin-option" onclick="mobileStepUp.handlePinSelection(${pin})" style="color: black;">
-                    ${String(pin).padStart(5, '0')}
-                </button>
-            `).join('');
-            
-            window.mobileDebug.log('PIN options loaded');
-        } catch (error) {
-            window.mobileDebug.error('Error loading PIN options: ' + error);
-            pinOptions.innerHTML = `
-                <div style="color: red; text-align: center; padding: 20px;">
-                    ${error.message}
-                    <br><br>
-                    <button onclick="mobileStepUp.loadPinOptions()" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px;">
-                        Try Again
-                    </button>
-                </div>`;
-        }
-    }
-
     async handlePinSelection(selectedPin) {
         try {
             window.mobileDebug.log(`Submitting PIN to server`);
@@ -449,11 +247,52 @@ class MobileStepUp {
             pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Error completing authentication. Please try again.</div>';
         }
     }
+
+    connectWebSocket() {
+        window.mobileDebug.log(`Setting up WebSocket for step_up_id: ${this.stepUpId}`);
+        this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.stepUpId}`);
+        
+        this.ws.onopen = () => {
+            window.mobileDebug.log('WebSocket connection established');
+            document.getElementById('input-container').style.display = 'block';
+        };
+        
+        this.ws.onclose = () => {
+            window.mobileDebug.log('WebSocket connection closed');
+            document.getElementById('input-container').style.display = 'none';
+        };
+        
+        this.ws.onerror = (error) => {
+            window.mobileDebug.error('WebSocket error: ' + error);
+        };
+    }
+
+    async sendAuthComplete() {
+        try {
+            // Wait for WebSocket to be ready
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                await new Promise((resolve) => {
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        resolve();
+                    } else {
+                        this.ws.onopen = () => resolve();
+                    }
+                });
+            }
+
+            // Send auth complete message
+            console.log('Sending auth_complete message');
+            this.ws.send(JSON.stringify({
+                type: 'auth_complete'
+            }));
+        } catch (error) {
+            console.error('Error sending auth complete:', error);
+        }
+    }
 }
 
 // Initialize
 const mobileStepUp = new MobileStepUp();
-mobileStepUp.init();
 
 // Handle PIN selection
 async function handlePinSelection(pin) {
