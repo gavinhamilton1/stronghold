@@ -95,31 +95,10 @@
     
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
             <div id="auth-level" style="color: #28a745; font-weight: bold;">Auth Level: AAL2</div>
-            <button id="downgrade-button" 
-                    onclick="stronghold.downgradeAAL()" 
-                    style="display: none; padding: 5px 10px; font-size: 12px;">
-                Downgrade to AAL2
-            </button>
+            <button id="downgrade-button" onclick="stronghold.downgradeAAL()" style="display: none; padding: 5px 10px; font-size: 12px;">Downgrade to AAL2</button>
         </div>
     
-        <!-- Ionic Segment Control -->
-        <ion-segment id="selector" style="max-width: 500px; margin: 20px auto;">
-            <ion-segment-button value="qr">
-                <ion-label>QR Code</ion-label>
-            </ion-segment-button>
-            <ion-segment-button value="pin-selector">
-                <ion-label>Pin Selector</ion-label>
-            </ion-segment-button>
-        </ion-segment>
-        
-        <!-- Content Sections -->
-        <div id="qr-code" class="content active">
-            <div id="step-up-container" style="text-align: center; margin: 20px 0;">
-                <div id="qrcode" style="margin: 0 auto;"></div>                
-                <div id="step-up-id"></div>
-            </div>
-        </div>
-        <div id="pin-selector" class="content">
+        <div id="pin-selector">
             <div class="input-group">
                 <h3>User Code</h3>
                 <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Step-up</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <!-- Ionic Core -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
@@ -97,42 +96,9 @@
         <h1>Mobile Step-up</h1>
         <div style="color: #666; margin-bottom: 20px;">Version 2.0.106</div>
 
-        <!-- Ionic Segment Control -->
-        <ion-segment id="selector" style="max-width: 500px; margin: 20px auto;">
-            <ion-segment-button value="qr">
-                <ion-label>QR Code</ion-label>
-            </ion-segment-button>
-            <ion-segment-button value="pin-selector">
-                <ion-label>Pin Selector</ion-label>
-            </ion-segment-button>
-            <ion-segment-button value="pin-entry">
-                <ion-label>Pin Entry</ion-label>
-            </ion-segment-button>
-        </ion-segment>
-
-        <!-- Content Sections -->
-        <div id="qr-code" class="content active">
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="scan-again" style="display: none;">Scan New Code</button>
-                <button id="register-passkey" style="display: none;">Authenticate with Biometrics</button>
-            </div>
-            <div id="reader"></div>
-        </div>
-
-        <div id="pin-selector" class="content">
+        <div id="pin-selector">
             <div id="pin-options" style="margin: 20px 0;">
                 <!-- Pin options will be inserted here -->
-            </div>
-        </div>
-
-        <div id="pin-entry" class="content">
-            <div class="input-group">
-                <input type="number" 
-                       id="pin-input" 
-                       placeholder="Enter 5-digit PIN" 
-                       min="10000" 
-                       max="99999"
-                       style="font-size: 18px; text-align: center;">
             </div>
         </div>
 
