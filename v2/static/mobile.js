@@ -424,12 +424,6 @@ async function handlePinSelection(pin) {
         if (data.session_id) {
             // PIN verified successfully
             console.log('PIN verified successfully');
-            // Send auth_complete message through WebSocket
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'auth_complete'
-                }));
-            }
             // Show success message
             showMessage('PIN verified successfully', 'success');
         } else {

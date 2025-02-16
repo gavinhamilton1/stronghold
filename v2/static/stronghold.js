@@ -75,23 +75,18 @@ class Stronghold {
       this.ws.close();
     }
     
-    console.log('Setting up WebSocket connection...');
-    this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.sessionId}`);
-    
-    this.ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      this.handleWebSocketMessage(data);
-    };
-    
     return new Promise((resolve, reject) => {
-      this.ws.onopen = () => {
-        console.log('WebSocket connection established');
-        resolve();
+      this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.sessionId}`);
+      
+      this.ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'auth_complete') {
+          this.handleAuthComplete();
+        }
       };
-      this.ws.onerror = (error) => {
-        console.error('WebSocket connection error:', error);
-        reject(error);
-      };
+      
+      this.ws.onopen = () => resolve();
+      this.ws.onerror = (error) => reject(error);
     });
   }
 
@@ -152,32 +147,33 @@ class Stronghold {
   }
 
   async startStepUp() {
-    console.log('Starting step-up process');
     try {
-      // Initialize new SSE connection
-      const clientId = await this.initializeStepUp('step-up-container', '/register-sse');
-      console.log('Got client ID:', clientId);
+      // Generate new PIN
+      const response = await fetch('/get-current-pin');
+      const data = await response.json();
       
-      // Initiate step-up
-      const result = await fetch(`/initiate-step-up/${clientId}`, {
-        method: 'POST'
-      });
-      const data = await result.json();
-      console.log('Step-up initiated response:', data);
-      
-      // Clear any existing status
-      const statusDiv = document.getElementById('status');
-      if (statusDiv) {
-        statusDiv.textContent = '';
-        statusDiv.className = '';
+      if (data.pin) {
+        // Display the PIN
+        document.getElementById('browser-pin').textContent = data.pin;
+        
+        // Try to establish WebSocket connection first
+        try {
+          await this.setupWebSocket();
+          window.mobileDebug.log('WebSocket connection established');
+        } catch (wsError) {
+          window.mobileDebug.log('WebSocket not available, falling back to polling');
+          // Fall back to polling if WebSocket fails
+          await this.setupPolling();
+        }
+        
+        // Show the PIN step
+        showStep(2);
+      } else {
+        throw new Error('Failed to get PIN');
       }
     } catch (error) {
-      console.error('Step-up error:', error);
-      const statusDiv = document.getElementById('status');
-      if (statusDiv) {
-        statusDiv.textContent = 'Error starting step-up: ' + error.message;
-        statusDiv.className = 'status error';
-      }
+      console.error('Error starting step-up:', error);
+      showStatus('Error starting step-up process', 'error');
     }
   }
 
@@ -271,33 +267,29 @@ class Stronghold {
   }
 
   async setupPolling() {
-    console.log('Setting up polling mechanism');
-    try {
-      console.log('Calling register-polling endpoint...');  // Add debug log
-      const response = await fetch('/register-polling', {
-        method: 'GET',  // Explicitly set method
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      this.clientId = data.client_id;
-      console.log('Got client ID for polling:', this.clientId);
-
-      // Set up event handlers similar to SSE
-      this.setupPollingEventHandlers();
-      
-      // Start polling for updates
-      this.startPolling();
-      return this.clientId;
-    } catch (error) {
-      console.error('Error setting up polling:', error);
-      throw error;
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
     }
+    
+    this.pollingInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/poll-updates/${this.sessionId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const updates = await response.json();
+        
+        if (updates.events && updates.events.length > 0) {
+          updates.events.forEach(event => {
+            if (event.type === 'auth_complete') {
+              this.handleAuthComplete();
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 1000);
   }
 
   setupEventListeners() {
@@ -368,45 +360,5 @@ class Stronghold {
   handleStepUpCompleted() {
     console.log('Handling step-up completion');
     this.handleAuthComplete();
-  }
-
-  startPolling() {
-    console.log('Starting polling for updates');
-    if (this.pollingInterval) {
-      console.log('Clearing existing polling interval');
-      clearInterval(this.pollingInterval);
-    }
-    
-    this.pollingInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/poll-updates/${this.clientId}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const updates = await response.json();
-        
-        if (updates.events && updates.events.length > 0) {
-          console.log('Processing events:', updates.events);
-          updates.events.forEach(event => {
-            console.log('Processing event:', event);
-            this.handlePolledEvent(event);
-          });
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
-    }, 1000);
-  }
-
-  handlePolledEvent(event) {
-    console.log('Handling polled event:', event);
-    const handler = this.eventHandlers[event.type];
-    if (handler) {
-      console.log(`Found handler for event type: ${event.type}`);
-      // Call the handler directly for all events
-      handler(event.data);
-    } else {
-      console.warn('Unknown event type:', event.type);
-    }
   }
 }
