@@ -255,6 +255,13 @@ class MobileStepUp {
 
     async authenticateWithBiometrics() {
         try {
+            const username = document.getElementById('username-input').value.trim();
+            
+            if (!username) {
+                window.mobileDebug.error('Username is required');
+                return false;
+            }
+
             // Try to authenticate first with strict biometric requirements
             const assertion = await navigator.credentials.get({
                 publicKey: {
@@ -280,8 +287,8 @@ class MobileStepUp {
                     },
                     user: {
                         id: new Uint8Array(16),
-                        name: "stronghold-user",
-                        displayName: "Stronghold User"
+                        name: username,
+                        displayName: username
                     },
                     pubKeyCredParams: [{alg: -7, type: "public-key"}],
                     authenticatorSelection: {
