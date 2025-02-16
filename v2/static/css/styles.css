@@ -299,6 +299,15 @@ body {
     background-color: #f0f1f1;
 }
 
+.digital-title {
+    font-size: 14pt;
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: normal;
+    color: #333;
+    text-align: center;
+    margin: 10px 10px 60px 10px;
+}
+
 .confirmation-container {
     text-align: center;
     padding: 20px;

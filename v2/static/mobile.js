@@ -265,28 +265,66 @@ class MobileStepUp {
             // Create a credential ID based on username
             const credentialId = new TextEncoder().encode(username);
 
-            // Try to authenticate with biometrics
-            const assertion = await navigator.credentials.get({
-                publicKey: {
-                    challenge: new Uint8Array(32),
-                    rpId: window.location.hostname,
-                    allowCredentials: [{
-                        id: credentialId,
-                        type: 'public-key',
-                        transports: ['internal']
-                    }],
-                    userVerification: "required",
+            try {
+                // Try to authenticate with existing passkey first
+                const assertion = await navigator.credentials.get({
+                    publicKey: {
+                        challenge: new Uint8Array(32),
+                        rpId: window.location.hostname,
+                        allowCredentials: [{
+                            id: credentialId,
+                            type: 'public-key',
+                            transports: ['internal']
+                        }],
+                        userVerification: "required",
+                    }
+                });
+                
+                if (assertion) {
+                    window.mobileDebug.log('Successfully authenticated with biometrics');
+                    return true;
                 }
-            });
-            
-            if (assertion) {
-                window.mobileDebug.log('Successfully authenticated with biometrics');
-                return true;
+            } catch (error) {
+                // If authentication fails, create a new passkey
+                window.mobileDebug.log('No existing passkey, creating new one');
+                try {
+                    const credential = await navigator.credentials.create({
+                        publicKey: {
+                            challenge: new Uint8Array(32),
+                            rp: {
+                                name: "J.P. Morgan Digital",
+                                id: window.location.hostname
+                            },
+                            user: {
+                                id: credentialId,
+                                name: username,
+                                displayName: username
+                            },
+                            pubKeyCredParams: [{
+                                type: "public-key",
+                                alg: -7
+                            }],
+                            authenticatorSelection: {
+                                authenticatorAttachment: "platform",
+                                userVerification: "required"
+                            }
+                        }
+                    });
+                    
+                    if (credential) {
+                        window.mobileDebug.log('Successfully created new passkey');
+                        return true;
+                    }
+                } catch (createError) {
+                    window.mobileDebug.error('Failed to create passkey: ' + createError);
+                    return false;
+                }
             }
         } catch (error) {
             window.mobileDebug.error('Biometric authentication failed: ' + error);
             return false;
         }
+        return false;
     }
 
     handleSuccessfulAuth() {
