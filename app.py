@@ -397,7 +397,11 @@ async def verify_pin(request: Request):
         pin = data.get('pin')
         session_id = data.get('session_id')
         
-        if str(pin) == str(CURRENT_PIN):
+        logger.info(f'Verifying PIN: user selected {pin} for session {session_id}')
+        correct_pin = session_pins.get(session_id)
+        logger.info(f'Correct PIN for session {session_id} is {correct_pin}')
+        
+        if str(pin) == str(correct_pin):
             logger.info(f'PIN verified successfully for session {session_id}')
             # Notify browser of successful authentication
             event = {
@@ -407,11 +411,12 @@ async def verify_pin(request: Request):
             
             # Add event to polling queue
             if session_id in POLLING_EVENTS:
+                logger.info(f'Adding auth_complete event to polling queue for session {session_id}')
                 POLLING_EVENTS[session_id].append(event)
             
             return JSONResponse(content={'session_id': session_id})
         else:
-            logger.error(f'PIN verification failed for session {session_id}')
+            logger.error(f'PIN verification failed for session {session_id}: user entered {pin}, expected {correct_pin}')
             return JSONResponse(
                 status_code=400,
                 content={'error': 'Invalid PIN'}

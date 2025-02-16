@@ -122,22 +122,22 @@ class Stronghold {
     // Update auth level
     const authLevelDiv = document.getElementById('auth-level');
     if (authLevelDiv) {
+      console.log('Updating auth level display');
       authLevelDiv.textContent = 'Auth Level: AAL3';
       authLevelDiv.style.color = '#fd7e14';
       localStorage.setItem('authLevel', 'AAL3');
-      console.log('Updated auth level display and localStorage');
     }
     
     // Show downgrade button
     const downgradeButton = document.getElementById('downgrade-button');
     if (downgradeButton) {
+      console.log('Showing downgrade button');
       downgradeButton.style.display = 'block';
-      console.log('Showed downgrade button');
     }
     
     // Update step-up container
     if (this.containerElement) {
-      console.log('Updating step-up container with completion message');
+      console.log('Updating step-up container');
       this.containerElement.innerHTML = `
         <div style="text-align: center; padding: 20px;">
           <h3 style="color: #28a745;">Step-up Complete!</h3>
@@ -308,6 +308,7 @@ class Stronghold {
     console.log('Setting up polling for session:', this.sessionId);
     this.pollingInterval = setInterval(async () => {
       try {
+        console.log('Polling for updates...');
         const response = await fetch(`/poll-updates/${this.sessionId}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -321,6 +322,8 @@ class Stronghold {
             if (event.type === 'auth_complete') {
               console.log('Received auth_complete event, handling...');
               this.handleAuthComplete();
+              // Clear polling interval after successful auth
+              clearInterval(this.pollingInterval);
             }
           });
         }
