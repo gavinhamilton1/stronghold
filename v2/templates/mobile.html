@@ -106,7 +106,7 @@
     </div>
 
     <!-- Debug Panel -->
-    <div id="debug-panel" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; font-family: monospace; font-size: 12px; padding: 10px; height: 30vh; overflow-y: auto; z-index: 1000; display: none;">
+    <div id="debug-panel" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; font-family: monospace; font-size: 12px; padding: 10px; height: 200px; overflow-y: scroll; z-index: 1000; display: none; -webkit-overflow-scrolling: touch;">
         <div id="debug-log"></div>
     </div>
 {% endblock %}
@@ -131,7 +131,10 @@
                     const debugLog = document.getElementById('debug-log');
                     if (debugLog) {
                         debugLog.innerHTML += `<div>${logMessage}</div>`;
-                        debugLog.scrollTop = debugLog.scrollHeight;
+                        // Ensure scroll to bottom happens after content is rendered
+                        setTimeout(() => {
+                            debugLog.scrollTop = debugLog.scrollHeight;
+                        }, 0);
                     }
                 }
             },
@@ -142,7 +145,10 @@
                     const debugLog = document.getElementById('debug-log');
                     if (debugLog) {
                         debugLog.innerHTML += `<div style="color: #ff4444;">${errorMessage}</div>`;
-                        debugLog.scrollTop = debugLog.scrollHeight;
+                        // Ensure scroll to bottom happens after content is rendered
+                        setTimeout(() => {
+                            debugLog.scrollTop = debugLog.scrollHeight;
+                        }, 0);
                     }
                 }
             }

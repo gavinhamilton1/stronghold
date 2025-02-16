@@ -75,18 +75,31 @@ class Stronghold {
       this.ws.close();
     }
     
+    console.log('Setting up WebSocket for session:', this.sessionId);
     return new Promise((resolve, reject) => {
       this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.sessionId}`);
       
       this.ws.onmessage = (event) => {
+        console.log('WebSocket message received:', event.data);
         const data = JSON.parse(event.data);
         if (data.type === 'auth_complete') {
           this.handleAuthComplete();
         }
       };
       
-      this.ws.onopen = () => resolve();
-      this.ws.onerror = (error) => reject(error);
+      this.ws.onopen = () => {
+        console.log('WebSocket connection opened');
+        resolve();
+      };
+      
+      this.ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        reject(error);
+      };
+      
+      this.ws.onclose = () => {
+        console.log('WebSocket connection closed');
+      };
     });
   }
 
@@ -150,12 +163,19 @@ class Stronghold {
     try {
       console.log('Starting step-up process...');
       
-      // Initialize SSE connection first
+      // Get session ID and initialize connection
+      const sessionResponse = await fetch('/start-session');
+      const sessionData = await sessionResponse.json();
+      this.sessionId = sessionData.session_id;
+      console.log('Got session ID:', this.sessionId);
+      
+      // Initialize WebSocket connection
       try {
-        await this.initializeStepUp('step-up-container', '/register-sse');
-        console.log('SSE connection initialized');
+        await this.setupWebSocket();
+        console.log('WebSocket connection established');
       } catch (error) {
-        console.error('Failed to initialize SSE:', error);
+        console.error('WebSocket failed, falling back to polling:', error);
+        await this.setupPolling();
       }
 
       // Generate new PIN
