@@ -422,6 +422,13 @@ async def verify_pin(request: Request):
             return JSONResponse(content={'session_id': session_id})
         else:
             logger.error(f'PIN verification failed for session {session_id}: user entered {pin}, expected {correct_pin}')
+            # Send auth_failed event through WebSocket
+            if session_id in WS_CONNECTIONS:
+                logger.info(f'Sending auth_failed through WebSocket for session {session_id}')
+                await WS_CONNECTIONS[session_id].send_json({
+                    'type': 'auth_failed',
+                    'timestamp': datetime.now().isoformat()
+                })
             return JSONResponse(
                 status_code=400,
                 content={'error': 'Invalid PIN'}

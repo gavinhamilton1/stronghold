@@ -182,7 +182,7 @@ class Stronghold {
       this.sessionId = sessionData.session_id;
       console.log('Got session ID:', this.sessionId);
       
-      // Initialize WebSocket connection with correct URL
+      // Setup WebSocket connection
       const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/${this.sessionId}`;
       console.log('Attempting WebSocket connection to:', wsUrl);
       
@@ -193,16 +193,16 @@ class Stronghold {
           const data = JSON.parse(event.data);
           if (data.type === 'auth_complete') {
             this.handleAuthComplete();
+          } else if (data.type === 'auth_failed') {
+            this.handleAuthFailed();
           }
         };
         this.ws.onopen = () => {
           console.log('WebSocket connection established');
-          // Start polling as backup
           this.setupPolling();
         };
         this.ws.onerror = (error) => {
           console.error('WebSocket error:', error);
-          // Fall back to polling on error
           this.setupPolling();
         };
       } catch (error) {
@@ -216,7 +216,13 @@ class Stronghold {
       
       if (data.pin) {
         // Display the PIN
-        document.getElementById('browser-pin').textContent = data.pin;
+        const pinContainer = document.getElementById('browser-pin');
+        pinContainer.innerHTML = `
+          <div style="text-align: center;">
+            <div style="font-size: 24px; margin: 20px 0;">${data.pin}</div>
+            <div id="pin-status"></div>
+          </div>
+        `;
         
         // Show the PIN step
         showStep(2);
@@ -226,6 +232,26 @@ class Stronghold {
     } catch (error) {
       console.error('Error starting step-up:', error);
       showStatus('Error starting step-up process', 'error');
+    }
+  }
+
+  handleAuthFailed() {
+    console.log('Handling auth failed event');
+    const pinContainer = document.getElementById('browser-pin');
+    if (pinContainer) {
+      pinContainer.innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+          <h3 style="color: #dc3545;">✕ Incorrect PIN</h3>
+          <p>Authentication failed. Please try again.</p>
+          <button onclick="stronghold.startStepUp()" 
+                  style="margin-top: 20px; padding: 10px 20px; 
+                         background: #007bff; color: white; 
+                         border: none; border-radius: 4px; 
+                         cursor: pointer;">
+            Try Again
+          </button>
+        </div>
+      `;
     }
   }
 
