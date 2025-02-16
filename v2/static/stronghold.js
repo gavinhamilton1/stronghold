@@ -118,7 +118,7 @@ class Stronghold {
   }
 
   handleAuthComplete() {
-    console.log('Auth completed, updating UI');
+    console.log('Handling auth complete event');
     // Update auth level
     const authLevelDiv = document.getElementById('auth-level');
     if (authLevelDiv) {
@@ -291,6 +291,7 @@ class Stronghold {
       clearInterval(this.pollingInterval);
     }
     
+    console.log('Setting up polling for session:', this.sessionId);
     this.pollingInterval = setInterval(async () => {
       try {
         const response = await fetch(`/poll-updates/${this.sessionId}`);
@@ -298,10 +299,13 @@ class Stronghold {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const updates = await response.json();
+        console.log('Polling received updates:', updates);
         
         if (updates.events && updates.events.length > 0) {
           updates.events.forEach(event => {
+            console.log('Processing event:', event);
             if (event.type === 'auth_complete') {
+              console.log('Received auth_complete event, handling...');
               this.handleAuthComplete();
             }
           });

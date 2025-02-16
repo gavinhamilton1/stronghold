@@ -16,6 +16,7 @@ import random
 import ssl
 import hashlib
 from OpenSSL import SSL
+from datetime import datetime
 
 app = FastAPI()
 
@@ -389,19 +390,38 @@ async def get_current_pin():
     }
 
 @app.post("/verify-pin")
-async def verify_pin(pin_data: dict):
+async def verify_pin(request: Request):
     """Verify a PIN and return a session ID if correct"""
-    session_id = pin_data.get("session_id")
-    submitted_pin = pin_data.get("pin")
-    
-    stored_pin = session_pins.get(session_id)
-    
-    if stored_pin and str(submitted_pin) == stored_pin:
-        # Don't remove the PIN yet as the session is still active
-        return {
-            "session_id": session_id
-        }
-    return {}
+    try:
+        data = await request.json()
+        pin = data.get('pin')
+        session_id = data.get('session_id')
+        
+        if str(pin) == str(CURRENT_PIN):
+            logger.info(f'PIN verified successfully for session {session_id}')
+            # Notify browser of successful authentication
+            event = {
+                'type': 'auth_complete',
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            # Add event to polling queue
+            if session_id in POLLING_EVENTS:
+                POLLING_EVENTS[session_id].append(event)
+            
+            return JSONResponse(content={'session_id': session_id})
+        else:
+            logger.error(f'PIN verification failed for session {session_id}')
+            return JSONResponse(
+                status_code=400,
+                content={'error': 'Invalid PIN'}
+            )
+    except Exception as e:
+        logger.error(f'Error verifying PIN: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={'error': str(e)}
+        )
 
 @app.post("/update-pin")
 async def update_pin(pin_data: dict):
