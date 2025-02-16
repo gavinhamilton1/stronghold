@@ -104,6 +104,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Debug Panel -->
+    <div id="debug-panel" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; font-family: monospace; font-size: 12px; padding: 10px; max-height: 200px; overflow-y: auto; z-index: 1000;">
+        <div id="debug-log"></div>
+    </div>
 {% endblock %}
 
 {% block scripts %}
@@ -111,10 +116,22 @@
         // Add console logging wrapper
         window.mobileDebug = {
             log: function(message) {
-                console.log(`[${new Date().toLocaleTimeString()}] ${message}`);
+                const logMessage = `[${new Date().toLocaleTimeString()}] ${message}`;
+                console.log(logMessage);
+                const debugLog = document.getElementById('debug-log');
+                if (debugLog) {
+                    debugLog.innerHTML += `<div>${logMessage}</div>`;
+                    debugLog.scrollTop = debugLog.scrollHeight;
+                }
             },
             error: function(message) {
-                console.error(`[${new Date().toLocaleTimeString()}] ERROR: ${message}`);
+                const errorMessage = `[${new Date().toLocaleTimeString()}] ERROR: ${message}`;
+                console.error(errorMessage);
+                const debugLog = document.getElementById('debug-log');
+                if (debugLog) {
+                    debugLog.innerHTML += `<div style="color: #ff4444;">${errorMessage}</div>`;
+                    debugLog.scrollTop = debugLog.scrollHeight;
+                }
             }
         };
     </script>
