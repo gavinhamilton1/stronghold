@@ -408,7 +408,8 @@ class MobileStepUp {
 
     async authenticateWithBiometrics() {
         try {
-            // Try to authenticate with biometrics
+            // Try to authenticate with existing passkey first
+            window.mobileDebug.log('Attempting to authenticate with existing passkey');
             const assertion = await navigator.credentials.get({
                 publicKey: {
                     challenge: new Uint8Array(32),
@@ -418,13 +419,50 @@ class MobileStepUp {
             });
             
             if (assertion) {
-                window.mobileDebug.log('Successfully authenticated with biometrics');
+                window.mobileDebug.log('Successfully authenticated with existing passkey');
                 return true;
             }
         } catch (error) {
-            window.mobileDebug.error('Biometric authentication failed: ' + error);
-            return false;
+            // If authentication fails, try registration with strict biometric requirements
+            window.mobileDebug.log('No existing passkey, attempting registration');
+            try {
+                const credential = await navigator.credentials.create({
+                    publicKey: {
+                        challenge: new Uint8Array(32),
+                        rp: {
+                            name: "Stronghold Step-up",
+                            id: window.location.hostname
+                        },
+                        user: {
+                            id: new Uint8Array(16),
+                            name: "stronghold-user",
+                            displayName: "Stronghold User"
+                        },
+                        pubKeyCredParams: [{alg: -7, type: "public-key"}],
+                        authenticatorSelection: {
+                            authenticatorAttachment: "platform",
+                            userVerification: "required",
+                            requireResidentKey: true,
+                            residentKey: "required"
+                        },
+                        attestation: "direct",
+                        extensions: {
+                            credProps: true,
+                            uvm: true
+                        }
+                    }
+                });
+                
+                if (credential) {
+                    window.mobileDebug.log('Successfully registered new passkey');
+                    return true;
+                }
+            } catch (regError) {
+                window.mobileDebug.error('Failed to register passkey: ' + regError);
+                return false;
+            }
         }
+        return false;
     }
 
     handleSuccessfulAuth() {
