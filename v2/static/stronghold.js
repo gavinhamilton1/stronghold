@@ -148,6 +148,16 @@ class Stronghold {
 
   async startStepUp() {
     try {
+      console.log('Starting step-up process...');
+      
+      // Initialize SSE connection first
+      try {
+        await this.initializeStepUp('step-up-container', '/register-sse');
+        console.log('SSE connection initialized');
+      } catch (error) {
+        console.error('Failed to initialize SSE:', error);
+      }
+
       // Generate new PIN
       const response = await fetch('/get-current-pin');
       const data = await response.json();
@@ -155,40 +165,6 @@ class Stronghold {
       if (data.pin) {
         // Display the PIN
         document.getElementById('browser-pin').textContent = data.pin;
-        
-        // Try SSE first
-        try {
-          console.log('Attempting SSE connection...');
-          this.eventSource = new EventSource('/register-sse');
-          
-          await new Promise((resolve, reject) => {
-            this.eventSource.onopen = () => {
-              console.log('SSE connection established');
-              this.setupEventListeners();
-              resolve();
-            };
-            
-            this.eventSource.onerror = (error) => {
-              console.error('SSE connection failed:', error);
-              this.eventSource.close();
-              reject(error);
-            };
-            
-            // Add timeout for SSE connection
-            setTimeout(() => reject(new Error('SSE connection timeout')), 3000);
-          });
-        } catch (sseError) {
-          console.log('SSE failed, trying WebSocket...', sseError);
-          // Try WebSocket if SSE fails
-          try {
-            await this.setupWebSocket();
-            console.log('WebSocket connection established');
-          } catch (wsError) {
-            console.log('WebSocket failed, falling back to polling...', wsError);
-            // Fall back to polling if both SSE and WebSocket fail
-            await this.setupPolling();
-          }
-        }
         
         // Show the PIN step
         showStep(2);
