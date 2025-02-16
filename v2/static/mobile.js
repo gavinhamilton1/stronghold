@@ -262,17 +262,21 @@ class MobileStepUp {
                 return false;
             }
 
-            // Create a credential ID based on username
-            const credentialId = new TextEncoder().encode(username);
+            // Create a stable credential ID based on username
+            const credentialId = await crypto.subtle.digest(
+                'SHA-256',
+                new TextEncoder().encode(username)
+            );
 
             try {
                 // Try to authenticate with existing passkey first
+                window.mobileDebug.log('Attempting to authenticate with existing passkey');
                 const assertion = await navigator.credentials.get({
                     publicKey: {
                         challenge: new Uint8Array(32),
                         rpId: window.location.hostname,
                         allowCredentials: [{
-                            id: credentialId,
+                            id: new Uint8Array(credentialId),
                             type: 'public-key',
                             transports: ['internal']
                         }],
@@ -285,6 +289,16 @@ class MobileStepUp {
                     return true;
                 }
             } catch (error) {
+                if (error.name === 'NotAllowedError') {
+                    window.mobileDebug.error('Biometric authentication was denied');
+                    return false;
+                }
+                
+                if (error.name !== 'InvalidStateError') {
+                    window.mobileDebug.error('Unexpected error during authentication: ' + error.name);
+                    return false;
+                }
+
                 // If authentication fails, create a new passkey
                 window.mobileDebug.log('No existing passkey, creating new one');
                 try {
@@ -296,7 +310,7 @@ class MobileStepUp {
                                 id: window.location.hostname
                             },
                             user: {
-                                id: credentialId,
+                                id: new Uint8Array(credentialId),
                                 name: username,
                                 displayName: username
                             },
@@ -316,7 +330,11 @@ class MobileStepUp {
                         return true;
                     }
                 } catch (createError) {
-                    window.mobileDebug.error('Failed to create passkey: ' + createError);
+                    if (createError.name === 'NotAllowedError') {
+                        window.mobileDebug.error('Biometric enrollment was denied');
+                    } else {
+                        window.mobileDebug.error('Failed to create passkey: ' + createError.name);
+                    }
                     return false;
                 }
             }
