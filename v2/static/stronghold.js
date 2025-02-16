@@ -169,9 +169,23 @@ class Stronghold {
       this.sessionId = sessionData.session_id;
       console.log('Got session ID:', this.sessionId);
       
-      // Initialize WebSocket connection
+      // Initialize WebSocket connection with correct URL
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = window.location.host;
+      const wsUrl = `${wsProtocol}//${wsHost}/ws/${this.sessionId}`;
+      console.log('Attempting WebSocket connection to:', wsUrl);
+      
       try {
-        await this.setupWebSocket();
+        this.ws = new WebSocket(wsUrl);
+        this.ws.onmessage = (event) => {
+          console.log('WebSocket message received:', event.data);
+          const data = JSON.parse(event.data);
+          if (data.type === 'auth_complete') {
+            this.handleAuthComplete();
+          }
+        };
+        this.ws.onopen = () => console.log('WebSocket connection established');
+        this.ws.onerror = (error) => console.error('WebSocket error:', error);
         console.log('WebSocket connection established');
       } catch (error) {
         console.error('WebSocket failed, falling back to polling:', error);

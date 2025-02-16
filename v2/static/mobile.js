@@ -224,6 +224,18 @@ class MobileStepUp {
                 })
             });
             
+            if (!response.ok) {
+                const errorData = await response.json();
+                window.mobileDebug.error('PIN verification failed: ' + errorData.error);
+                // Show failure screen
+                document.getElementById('success-email').textContent = 
+                    document.getElementById('username-input').value.trim();
+                document.getElementById('success-state').style.display = 'none';
+                document.getElementById('failure-state').style.display = 'block';
+                this.showStep(4);
+                return;
+            }
+            
             const data = await response.json();
             if (data.session_id) {
                 mobileDebug.log('PIN verified successfully');
