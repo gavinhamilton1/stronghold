@@ -262,11 +262,8 @@ class MobileStepUp {
                 return false;
             }
 
-            // Create a stable credential ID based on username
-            const credentialId = await crypto.subtle.digest(
-                'SHA-256',
-                new TextEncoder().encode(username)
-            );
+            // Create a simple credential ID
+            const credentialId = new TextEncoder().encode(username);
 
             let assertion;
             try {
@@ -277,7 +274,7 @@ class MobileStepUp {
                         challenge: new Uint8Array(32),
                         rpId: window.location.hostname,
                         allowCredentials: [{
-                            id: new Uint8Array(credentialId),
+                            id: credentialId,
                             type: 'public-key',
                             transports: ['internal']
                         }],
@@ -285,6 +282,7 @@ class MobileStepUp {
                     }
                 });
             } catch (error) {
+                window.mobileDebug.log('Authentication error:', error.name);
                 if (error.name === 'NotAllowedError') {
                     window.mobileDebug.error('Biometric authentication was denied');
                     return false;
@@ -300,7 +298,7 @@ class MobileStepUp {
                             id: window.location.hostname
                         },
                         user: {
-                            id: new Uint8Array(credentialId),
+                            id: credentialId,
                             name: username,
                             displayName: username
                         },
@@ -310,7 +308,8 @@ class MobileStepUp {
                         }],
                         authenticatorSelection: {
                             authenticatorAttachment: "platform",
-                            userVerification: "required"
+                            userVerification: "required",
+                            residentKey: "required"
                         }
                     }
                 });
