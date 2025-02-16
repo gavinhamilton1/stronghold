@@ -106,31 +106,44 @@
     </div>
 
     <!-- Debug Panel -->
-    <div id="debug-panel" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; font-family: monospace; font-size: 12px; padding: 10px; max-height: 200px; overflow-y: auto; z-index: 1000;">
+    <div id="debug-panel" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; font-family: monospace; font-size: 12px; padding: 10px; max-height: 200px; overflow-y: auto; z-index: 1000; display: none;">
         <div id="debug-log"></div>
     </div>
 {% endblock %}
 
 {% block scripts %}
     <script>
+        // Check for debug parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const debugEnabled = urlParams.get('debug') === '1';
+        
+        // Show debug panel if enabled
+        if (debugEnabled) {
+            document.getElementById('debug-panel').style.display = 'block';
+        }
+
         // Add console logging wrapper
         window.mobileDebug = {
             log: function(message) {
                 const logMessage = `[${new Date().toLocaleTimeString()}] ${message}`;
                 console.log(logMessage);
-                const debugLog = document.getElementById('debug-log');
-                if (debugLog) {
-                    debugLog.innerHTML += `<div>${logMessage}</div>`;
-                    debugLog.scrollTop = debugLog.scrollHeight;
+                if (debugEnabled) {
+                    const debugLog = document.getElementById('debug-log');
+                    if (debugLog) {
+                        debugLog.innerHTML += `<div>${logMessage}</div>`;
+                        debugLog.scrollTop = debugLog.scrollHeight;
+                    }
                 }
             },
             error: function(message) {
                 const errorMessage = `[${new Date().toLocaleTimeString()}] ERROR: ${message}`;
                 console.error(errorMessage);
-                const debugLog = document.getElementById('debug-log');
-                if (debugLog) {
-                    debugLog.innerHTML += `<div style="color: #ff4444;">${errorMessage}</div>`;
-                    debugLog.scrollTop = debugLog.scrollHeight;
+                if (debugEnabled) {
+                    const debugLog = document.getElementById('debug-log');
+                    if (debugLog) {
+                        debugLog.innerHTML += `<div style="color: #ff4444;">${errorMessage}</div>`;
+                        debugLog.scrollTop = debugLog.scrollHeight;
+                    }
                 }
             }
         };
