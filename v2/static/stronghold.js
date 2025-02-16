@@ -77,7 +77,10 @@ class Stronghold {
     
     console.log('Setting up WebSocket for session:', this.sessionId);
     return new Promise((resolve, reject) => {
-      this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.sessionId}`);
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws/${this.sessionId}`;
+      console.log('Connecting to WebSocket URL:', wsUrl);
+      this.ws = new WebSocket(wsUrl);
       
       this.ws.onmessage = (event) => {
         console.log('WebSocket message received:', event.data);
@@ -170,9 +173,7 @@ class Stronghold {
       console.log('Got session ID:', this.sessionId);
       
       // Initialize WebSocket connection with correct URL
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsHost = window.location.host;
-      const wsUrl = `${wsProtocol}//${wsHost}/ws/${this.sessionId}`;
+      const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/${this.sessionId}`;
       console.log('Attempting WebSocket connection to:', wsUrl);
       
       try {
@@ -184,9 +185,16 @@ class Stronghold {
             this.handleAuthComplete();
           }
         };
-        this.ws.onopen = () => console.log('WebSocket connection established');
-        this.ws.onerror = (error) => console.error('WebSocket error:', error);
-        console.log('WebSocket connection established');
+        this.ws.onopen = () => {
+          console.log('WebSocket connection established');
+          // Start polling as backup
+          this.setupPolling();
+        };
+        this.ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          // Fall back to polling on error
+          this.setupPolling();
+        };
       } catch (error) {
         console.error('WebSocket failed, falling back to polling:', error);
         await this.setupPolling();

@@ -629,6 +629,23 @@ async def join_session(username: str):
             content={"error": str(e)}
         )
 
+@app.get("/poll-updates/{session_id}")
+async def poll_updates(session_id: str):
+    """Poll for updates for a given session"""
+    try:
+        logger.info(f'Polling updates for session: {session_id}')
+        events = list(POLLING_EVENTS[session_id])
+        # Clear events after retrieving them
+        POLLING_EVENTS[session_id].clear()
+        logger.info(f'Returning events: {events}')
+        return JSONResponse(content={"events": events})
+    except Exception as e:
+        logger.error(f'Error polling updates: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 
