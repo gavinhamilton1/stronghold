@@ -1,94 +1,95 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mobile Step-up</title>
-    <!-- Ionic Core -->
+{% extends "base.html" %}
+
+{% block title %}Mobile Step-up{% endblock %}
+
+{% block extra_head %}
     <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        #reader {
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        #input-container {
-            display: none;
-            margin-top: 20px;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        button:disabled {
-            background: #ccc;
-        }
-        .content {
-            display: none;
-            margin-top: 20px;
-        }
-        .active {
-            display: block;
-        }
-        .pin-option {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            font-size: 18px;
-            text-align: center;
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .pin-option:hover {
-            background: #e9ecef;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Mobile Step-up</h1>
-        <div style="color: #666; margin-bottom: 20px;">Version 2.0.106</div>
+{% endblock %}
 
-        <div id="pin-selector">
-            <div id="pin-options" style="margin: 20px 0;">
-                <!-- Pin options will be inserted here -->
+{% block body_class %}mobile-page{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <img src="/static/JPMorganLogo.png" alt="J.P. Morgan" style="width: 200px; margin: 20px 0;">
+
+        <!-- Step 1: Login -->
+        <div class="step active" id="step1">
+            <div id="login-form-container"></div>
+        </div>
+
+        <!-- Step 2: Confirmation -->
+        <div class="step" id="step2">
+            <div class="confirmation-container">
+                <div class="email-pill">
+                    <span class="icon">●</span>
+                    <span id="confirmation-email"></span>
+                </div>
+                
+                <div class="auth-question">
+                    Are you trying to authenticate on another device?
+                </div>
+                
+                <div class="choice-buttons">
+                    <button class="choice-button no" onclick="mobileStepUp.showStep(1)">
+                        ✕ NO
+                    </button>
+                    <button class="choice-button yes" onclick="mobileStepUp.loadPinOptions()">
+                        ✓ YES
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div id="input-container" style="display: none;">
-            <input type="text" id="message-input" placeholder="Type message...">
-            <button id="send-message">Send</button>
+        <!-- Step 3: PIN Selection -->
+        <div class="step" id="step3">
+            <div class="confirmation-container">
+                <a href="#" class="cancel-link" onclick="mobileStepUp.showStep(2)">Cancel</a>
+                
+                <div class="email-pill">
+                    <span class="icon">●</span>
+                    <span id="pin-email"></span>
+                </div>
+                
+                <div class="pin-instructions">
+                    Match the number on your other device
+                </div>
+                <div class="pin-subtitle">
+                    J.P. Morgan needs to verify it is really you.
+                </div>
+                <div id="pin-options" class="pin-grid">
+                    <!-- Pin options will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Success -->
+        <div class="step" id="step4">
+            <div class="success-container">
+                <img src="/static/JPMorganLogo.png" alt="J.P. Morgan" style="width: 200px; margin: 20px 0;">
+                
+                <div class="email-pill">
+                    <span class="icon">●</span>
+                    <span id="success-email"></span>
+                </div>
+                
+                <div class="success-icon">
+                    ✓
+                </div>
+                
+                <div class="success-title">
+                    Authentication approved
+                </div>
+                
+                <div class="success-message">
+                    Return to your other device to continue.
+                </div>
+            </div>
         </div>
     </div>
+{% endblock %}
 
+{% block scripts %}
     <script>
         // Add console logging wrapper
         window.mobileDebug = {
@@ -101,5 +102,17 @@
         };
     </script>
     <script src="/static/mobile.js"></script>
-</body>
-</html> 
+    <script src="/static/components/login-form.js"></script>
+    <script>
+        // Initialize login form
+        const loginForm = new LoginForm('login-form-container', {
+            onContinue: ({ username, remember }) => {
+                // Update email displays
+                document.getElementById('confirmation-email').textContent = username;
+                document.getElementById('pin-email').textContent = username;
+                // Show confirmation step
+                mobileStepUp.showStep(2);
+            }
+        });
+    </script>
+{% endblock %} 

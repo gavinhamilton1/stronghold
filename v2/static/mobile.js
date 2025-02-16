@@ -1,47 +1,89 @@
 class MobileStepUp {
     constructor() {
-        this.stepUpId = null;
+        this.sessionId = null;
         this.credentialId = null;
-        this.init();
     }
 
     async init() {
-        await this.loadPinOptions();
-        this.setupMessageInput();
+        // Check for saved username
+        const savedUsername = getCookie('username');
+        if (savedUsername) {
+            document.getElementById('username-input').value = savedUsername;
+            document.getElementById('remember-username').checked = true;
+        }
+    }
+
+    async startSession() {
+        const usernameInput = document.getElementById('username-input');
+        const username = usernameInput.value.trim();
+        const rememberUsername = document.getElementById('remember-username').checked;
+        
+        window.mobileDebug.log(`Starting session for username: ${username}`);
+        
+        if (!username) {
+            window.mobileDebug.error('Please enter a username');
+            return;
+        }
+        
+        // Handle remember username
+        if (rememberUsername) {
+            window.mobileDebug.log('Saving username to cookie');
+            setCookie('username', username, 30); // Save for 30 days
+        } else {
+            window.mobileDebug.log('Removing username from cookie');
+            setCookie('username', '', -1); // Remove cookie
+        }
+        
+        // Update email displays
+        document.getElementById('confirmation-email').textContent = username;
+        document.getElementById('pin-email').textContent = username;
+        
+        // Show confirmation step
+        this.showStep(2);
     }
 
     async loadPinOptions() {
-        const pinOptions = document.getElementById('pin-options');
-        window.mobileDebug.log('Loading PIN options');
-        
         try {
-            // Get the step-up ID from the browser's PIN display
-            const browserPinResponse = await fetch('/get-current-pin');
-            if (!browserPinResponse.ok) {
-                throw new Error('No active PIN available. Please generate a PIN in the browser first.');
-            }
-            const browserPinData = await browserPinResponse.json();
-            if (!browserPinData.step_up_id) {
-                throw new Error('No step-up ID available from browser');
-            }
-            this.stepUpId = browserPinData.step_up_id;
-            window.mobileDebug.log('Using browser step-up ID:', this.stepUpId);
+            const username = document.getElementById('username-input').value.trim();
+            window.mobileDebug.log('Checking for active session');
+            window.mobileDebug.log('API Call - GET /join-session?username=' + username);
+            const response = await fetch(`/join-session?username=${encodeURIComponent(username)}`);
             
-            // Get PIN options from server
-            const response = await fetch(`/get-pin-options?step_up_id=${this.stepUpId}`);
             if (!response.ok) {
-                throw new Error('Failed to get PIN options. Please make sure a PIN is generated in the browser.');
+                window.mobileDebug.error(`Server returned status: ${response.status}`);
+                throw new Error('No active session found. Please start authentication from your browser first.');
             }
-            const { pins } = await response.json();
+            
+            const data = await response.json();
+            window.mobileDebug.log('API Response: ' + JSON.stringify(data));
+            this.sessionId = data.session_id;
+            window.mobileDebug.log(`Mobile: Joined session with ID: ${this.sessionId}`);
+            
+            const pinOptions = document.getElementById('pin-options');
+            window.mobileDebug.log(`API Call - GET /get-pin-options?username=${encodeURIComponent(username)}`);
+            const pinOptionsResponse = await fetch(`/get-pin-options?username=${encodeURIComponent(username)}`);
+            if (!pinOptionsResponse.ok) {
+                const errorData = await pinOptionsResponse.json();
+                window.mobileDebug.error(`Server error: ${errorData.error}`);
+                throw new Error('Failed to get PIN options');
+            }
+            const { pins } = await pinOptionsResponse.json();
+            window.mobileDebug.log('API Response: ' + JSON.stringify({ pins }));
             
             // Create buttons for each PIN
-            pinOptions.innerHTML = pins.map(pin => `
-                <button class="pin-option" onclick="mobileStepUp.handlePinSelection(${pin})" style="color: black;">
-                    ${String(pin).padStart(5, '0')}
-                </button>
-            `).join('');
+            if (pins && pins.length > 0) {
+                pinOptions.innerHTML = pins.map(pin => `
+                    <button class="pin-option" onclick="mobileStepUp.handlePinSelection(${pin})">
+                        ${pin}
+                    </button>
+                `).join('');
+            } else {
+                throw new Error('No PIN options received from server');
+            }
             
             window.mobileDebug.log('PIN options loaded');
+            // Show the PIN selection step
+            this.showStep(3);
         } catch (error) {
             window.mobileDebug.error('Error loading PIN options: ' + error);
             pinOptions.innerHTML = `
@@ -83,7 +125,7 @@ class MobileStepUp {
 
                 // Fall back to HTTP if WebSocket not available or failed
                 window.mobileDebug.log('WebSocket not available, falling back to HTTP');
-                const response = await fetch(`/send-message/${this.stepUpId}`, {
+                const response = await fetch(`/send-message/${this.sessionId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -162,8 +204,8 @@ class MobileStepUp {
     async handlePinSelection(selectedPin) {
         try {
             window.mobileDebug.log(`Submitting PIN to server`);
-            if (!this.stepUpId) {
-                throw new Error('No step-up ID available');
+            if (!this.sessionId) {
+                throw new Error('No session ID available');
             }
 
             await this.authenticateWithBiometrics()
@@ -180,27 +222,29 @@ class MobileStepUp {
                         },
                         body: JSON.stringify({ 
                             pin: selectedPin,
-                            step_up_id: this.stepUpId  // Use the stored step_up_id
+                            session_id: this.sessionId
                         })
                     });
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.step_up_id) {
+                    if (data.session_id) {
                         mobileDebug.log('PIN verified successfully');
-                        // Handle successful authentication
-                        this.handleSuccessfulAuth();
+                        // Show success screen
+                        document.getElementById('success-email').textContent = 
+                            document.getElementById('username-input').value.trim();
+                        this.showStep(4);
                     } else {
                         mobileDebug.error('Incorrect PIN selected');
                         const pinOptions = document.getElementById('pin-options');
-                        pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Incorrect PIN. Please try again with QR code.</div>';
+                        pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Incorrect PIN. Please try again.</div>';
                     }
                 });
         } catch (error) {
             window.mobileDebug.error('Network error: ' + error.message);
             // Show error message in place of PIN options
             const pinOptions = document.getElementById('pin-options');
-            pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Network error. Please try again with QR code.</div>';
+            pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Network error. Please try again.</div>';
         }
     }
 
@@ -249,8 +293,8 @@ class MobileStepUp {
     }
 
     connectWebSocket() {
-        window.mobileDebug.log(`Setting up WebSocket for step_up_id: ${this.stepUpId}`);
-        this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.stepUpId}`);
+        window.mobileDebug.log(`Setting up WebSocket for session_id: ${this.sessionId}`);
+        this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.sessionId}`);
         
         this.ws.onopen = () => {
             window.mobileDebug.log('WebSocket connection established');
@@ -289,10 +333,22 @@ class MobileStepUp {
             console.error('Error sending auth complete:', error);
         }
     }
+
+    showStep(stepNumber) {
+        // Hide all steps
+        document.querySelectorAll('.step').forEach(step => {
+            step.classList.remove('active');
+        });
+        // Show requested step
+        document.getElementById(`step${stepNumber}`).classList.add('active');
+    }
 }
 
-// Initialize
-const mobileStepUp = new MobileStepUp();
+// Initialize after DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.mobileStepUp = new MobileStepUp();
+    mobileStepUp.init();
+});
 
 // Handle PIN selection
 async function handlePinSelection(pin) {
@@ -306,12 +362,12 @@ async function handlePinSelection(pin) {
             },
             body: JSON.stringify({
                 pin: pin,
-                step_up_id: currentStepUpId
+                session_id: currentSessionId
             })
         });
 
         const data = await response.json();
-        if (data.step_up_id) {
+        if (data.session_id) {
             // PIN verified successfully
             console.log('PIN verified successfully');
             // Send auth_complete message through WebSocket
@@ -359,4 +415,22 @@ async function displayPinOptions() {
         console.error('Error getting PIN options:', error);
         mobileDebug.error('Failed to get PIN options');
     }
+}
+
+// Cookie handling functions
+function setCookie(name, value, days) {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+}
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
 } 

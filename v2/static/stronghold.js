@@ -6,6 +6,8 @@ class Stronghold {
     this.pollingInterval = null;
     this.clientId = null;
     this.currentClientId = null;  // Store the current client ID
+    this.sessionId = null;
+    this.ws = null;  // Add WebSocket property
     this.initializeAALLevel();
     console.log('Stronghold initialized');
   }
@@ -62,6 +64,123 @@ class Stronghold {
     this.aalUpdated = false;
   }
 
+  async initializeSession(sessionId) {
+    console.log('Initializing session with ID:', sessionId);
+    this.sessionId = sessionId;
+    await this.setupWebSocket();
+  }
+
+  async setupWebSocket() {
+    if (this.ws) {
+      this.ws.close();
+    }
+    
+    console.log('Setting up WebSocket connection...');
+    this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.sessionId}`);
+    
+    this.ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      this.handleWebSocketMessage(data);
+    };
+    
+    return new Promise((resolve, reject) => {
+      this.ws.onopen = () => {
+        console.log('WebSocket connection established');
+        resolve();
+      };
+      this.ws.onerror = (error) => {
+        console.error('WebSocket connection error:', error);
+        reject(error);
+      };
+    });
+  }
+
+  handleWebSocketMessage(data) {
+    console.log('WebSocket message received:', data);
+    switch (data.type) {
+      case 'auth_complete':
+        this.handleAuthComplete();
+        break;
+      case 'mobile_message':
+        this.handleMobileMessage(data.content);
+        break;
+      default:
+        console.warn('Unknown message type:', data.type);
+    }
+  }
+
+  handleAuthComplete() {
+    console.log('Auth completed, updating UI');
+    // Update auth level
+    const authLevelDiv = document.getElementById('auth-level');
+    if (authLevelDiv) {
+      authLevelDiv.textContent = 'Auth Level: AAL3';
+      authLevelDiv.style.color = '#fd7e14';
+      localStorage.setItem('authLevel', 'AAL3');
+      console.log('Updated auth level display and localStorage');
+    }
+    
+    // Show downgrade button
+    const downgradeButton = document.getElementById('downgrade-button');
+    if (downgradeButton) {
+      downgradeButton.style.display = 'block';
+      console.log('Showed downgrade button');
+    }
+    
+    // Update step-up container
+    if (this.containerElement) {
+      console.log('Updating step-up container with completion message');
+      this.containerElement.innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+          <h3 style="color: #28a745;">Step-up Complete!</h3>
+          <p>Authentication level upgraded to AAL3</p>
+        </div>
+      `;
+    }
+    
+    // Start AAL timer
+    console.log('Starting AAL timer');
+    this.startAALTimer(20);
+  }
+
+  handleMobileMessage(content) {
+    console.log('Mobile message received:', content);
+    const messageBox = document.getElementById('pin-message-box');
+    const messageDiv = document.createElement('div');
+    messageDiv.textContent = content;
+    messageBox.appendChild(messageDiv);
+  }
+
+  async startStepUp() {
+    console.log('Starting step-up process');
+    try {
+      // Initialize new SSE connection
+      const clientId = await this.initializeStepUp('step-up-container', '/register-sse');
+      console.log('Got client ID:', clientId);
+      
+      // Initiate step-up
+      const result = await fetch(`/initiate-step-up/${clientId}`, {
+        method: 'POST'
+      });
+      const data = await result.json();
+      console.log('Step-up initiated response:', data);
+      
+      // Clear any existing status
+      const statusDiv = document.getElementById('status');
+      if (statusDiv) {
+        statusDiv.textContent = '';
+        statusDiv.className = '';
+      }
+    } catch (error) {
+      console.error('Step-up error:', error);
+      const statusDiv = document.getElementById('status');
+      if (statusDiv) {
+        statusDiv.textContent = 'Error starting step-up: ' + error.message;
+        statusDiv.className = 'status error';
+      }
+    }
+  }
+
   async initializeStepUp(containerId, sseEndpoint) {
     // If we already have a connection, just return the existing client ID
     if (this.eventSource && this.currentClientId) {
@@ -113,71 +232,71 @@ class Stronghold {
 
   async setupSSE() {
     return new Promise((resolve, reject) => {
-        let timeoutId = setTimeout(() => {
-            console.error('SSE connection timed out');
-            this.eventSource.close();
-            reject(new Error('SSE connection timed out'));
-        }, 3000);  // Reduced timeout to 3 seconds
+      let timeoutId = setTimeout(() => {
+        console.error('SSE connection timed out');
+        this.eventSource.close();
+        reject(new Error('SSE connection timed out'));
+      }, 3000);  // Reduced timeout to 3 seconds
 
-        // Add connection timeout check
-        let connectionTimeoutId = setTimeout(() => {
-            console.error('SSE connection blocked or too slow');
-            this.eventSource.close();
-            reject(new Error('SSE connection blocked'));
-        }, 1000);  // Check if connection is established within 1 second
+      // Add connection timeout check
+      let connectionTimeoutId = setTimeout(() => {
+        console.error('SSE connection blocked or too slow');
+        this.eventSource.close();
+        reject(new Error('SSE connection blocked'));
+      }, 1000);  // Check if connection is established within 1 second
 
-        this.eventSource.onopen = () => {
-            console.log('SSE connection opened');
-            clearTimeout(connectionTimeoutId);
-        };
+      this.eventSource.onopen = () => {
+        console.log('SSE connection opened');
+        clearTimeout(connectionTimeoutId);
+      };
 
-        this.eventSource.onmessage = (event) => {
-            clearTimeout(timeoutId);
-            clearTimeout(connectionTimeoutId);
-            const clientId = JSON.parse(event.data).client_id;
-            this.clientId = clientId;
-            console.log('Got client ID from SSE:', clientId);
-            this.setupEventListeners();
-            resolve(clientId);
-        };
+      this.eventSource.onmessage = (event) => {
+        clearTimeout(timeoutId);
+        clearTimeout(connectionTimeoutId);
+        const clientId = JSON.parse(event.data).client_id;
+        this.clientId = clientId;
+        console.log('Got client ID from SSE:', clientId);
+        this.setupEventListeners();
+        resolve(clientId);
+      };
 
-        this.eventSource.onerror = (error) => {
-            clearTimeout(timeoutId);
-            clearTimeout(connectionTimeoutId);
-            console.error('SSE connection error:', error);
-            this.eventSource.close();
-            reject(error);
-        };
+      this.eventSource.onerror = (error) => {
+        clearTimeout(timeoutId);
+        clearTimeout(connectionTimeoutId);
+        console.error('SSE connection error:', error);
+        this.eventSource.close();
+        reject(error);
+      };
     });
   }
 
   async setupPolling() {
     console.log('Setting up polling mechanism');
     try {
-        console.log('Calling register-polling endpoint...');  // Add debug log
-        const response = await fetch('/register-polling', {
-            method: 'GET',  // Explicitly set method
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+      console.log('Calling register-polling endpoint...');  // Add debug log
+      const response = await fetch('/register-polling', {
+        method: 'GET',  // Explicitly set method
+        headers: {
+          'Accept': 'application/json'
         }
-        const data = await response.json();
-        this.clientId = data.client_id;
-        console.log('Got client ID for polling:', this.clientId);
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      this.clientId = data.client_id;
+      console.log('Got client ID for polling:', this.clientId);
 
-        // Set up event handlers similar to SSE
-        this.setupPollingEventHandlers();
-        
-        // Start polling for updates
-        this.startPolling();
-        return this.clientId;
+      // Set up event handlers similar to SSE
+      this.setupPollingEventHandlers();
+      
+      // Start polling for updates
+      this.startPolling();
+      return this.clientId;
     } catch (error) {
-        console.error('Error setting up polling:', error);
-        throw error;
+      console.error('Error setting up polling:', error);
+      throw error;
     }
   }
 
@@ -186,168 +305,63 @@ class Stronghold {
     
     // Listen for step-up initiation
     this.eventSource.addEventListener('step_up_initiated', (event) => {
-        console.log('Received step-up initiated event:', event);
-        try {
-            const data = JSON.parse(event.data);
-            const stepUpId = data.step_up_id || data;
-            console.log('Received step-up ID:', stepUpId);
-            this.handleStepUpInitiated(stepUpId);
-        } catch (error) {
-            console.error('Error processing step-up event:', error);
-        }
+      console.log('Received step-up initiated event:', event);
+      try {
+        const data = JSON.parse(event.data);
+        const stepUpId = data.step_up_id || data;
+        console.log('Received step-up ID:', stepUpId);
+        this.handleStepUpInitiated(stepUpId);
+      } catch (error) {
+        console.error('Error processing step-up event:', error);
+      }
     });
 
     // Listen for mobile messages
     this.eventSource.addEventListener('mobile_message', (event) => {
-        console.log('Received mobile message:', event);
-        this.handleMobileMessage(event.data);
+      console.log('Received mobile message:', event);
+      this.handleMobileMessage(event.data);
     });
 
     // Add event listener for auth_complete event
     this.eventSource.addEventListener('auth_complete', (event) => {
-        console.log('Received auth_complete event with data:', event.data);
-        try {
-            this.handleAuthComplete();
-        } catch (error) {
-            console.error('Error processing auth_complete event:', error);
-        }
+      console.log('Received auth_complete event with data:', event.data);
+      try {
+        this.handleAuthComplete();
+      } catch (error) {
+        console.error('Error processing auth_complete event:', error);
+      }
     });
   }
 
   setupPollingEventHandlers() {
     console.log('Setting up polling event handlers');
     this.eventHandlers = {
-        'step_up_initiated': (data) => {
-            console.log('Polling: Received step-up initiated:', data);
-            this.handleStepUpInitiated(data);
-        },
-        'auth_complete': () => {
-            console.log('Polling: Received auth complete');
-            this.handleAuthComplete();  // Use the shared handler
-        },
-        'mobile_message': (data) => {
-            console.log('Polling: Received mobile message:', data);
-            // Clear the container if it's the first message after auth
-            if (this.containerElement.children.length === 1 && 
-                this.containerElement.children[0].textContent === 'Messages will appear here...') {
-                this.containerElement.innerHTML = '';
-            }
-            this.handleMobileMessage(data);
+      'step_up_initiated': (data) => {
+        console.log('Polling: Received step-up initiated:', data);
+        this.handleStepUpInitiated(data);
+      },
+      'auth_complete': () => {
+        console.log('Polling: Received auth complete');
+        this.handleAuthComplete();  // Use the shared handler
+      },
+      'mobile_message': (data) => {
+        console.log('Polling: Received mobile message:', data);
+        // Clear the container if it's the first message after auth
+        if (this.containerElement.children.length === 1 && 
+          this.containerElement.children[0].textContent === 'Messages will appear here...') {
+          this.containerElement.innerHTML = '';
         }
+        this.handleMobileMessage(data);
+      }
     };
-  }
-
-  handleAuthComplete() {
-    console.log('Auth completed, updating UI');
-    // Update auth level
-    const authLevelDiv = document.getElementById('auth-level');
-    if (authLevelDiv) {
-        authLevelDiv.textContent = 'Auth Level: AAL3';
-        authLevelDiv.style.color = '#fd7e14';
-        localStorage.setItem('authLevel', 'AAL3');
-        console.log('Updated auth level display and localStorage');
-    }
-    
-    // Show downgrade button
-    const downgradeButton = document.getElementById('downgrade-button');
-    if (downgradeButton) {
-        downgradeButton.style.display = 'block';
-        console.log('Showed downgrade button');
-    }
-    
-    // Update step-up container
-    if (this.containerElement) {
-        console.log('Updating step-up container with completion message');
-        this.containerElement.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <h3 style="color: #28a745;">Step-up Complete!</h3>
-                <p>Authentication level upgraded to AAL3</p>
-            </div>
-        `;
-    }
-    
-    // Start AAL timer
-    console.log('Starting AAL timer');
-    this.startAALTimer(20);
-  }
-
-  handleMobileMessage(data) {
-    console.log('Processing mobile message:', data);
-    try {
-        if (!this.containerElement) {
-            console.error('Container element not found');
-            return;
-        }
-
-        // Create message element
-        const messageEl = document.createElement('div');
-        messageEl.style.margin = '10px';
-        messageEl.style.padding = '10px';
-        messageEl.style.background = '#f0f0f0';
-        messageEl.style.borderRadius = '4px';
-        messageEl.style.maxWidth = '80%';
-        messageEl.style.wordBreak = 'break-word';
-        
-        const messageText = document.createElement('p');
-        messageText.style.margin = '0';
-        messageText.textContent = typeof data === 'string' ? data : JSON.stringify(data);
-        messageEl.appendChild(messageText);
-        
-        console.log('Adding message to container:', this.containerElement.id);
-        this.containerElement.appendChild(messageEl);
-        this.containerElement.scrollTop = this.containerElement.scrollHeight;
-        console.log('Message added successfully');
-    } catch (error) {
-        console.error('Error handling mobile message:', error);
-    }
-  }
-
-  startPolling() {
-    console.log('Starting polling for updates');
-    if (this.pollingInterval) {
-        console.log('Clearing existing polling interval');
-        clearInterval(this.pollingInterval);
-    }
-    
-    this.pollingInterval = setInterval(async () => {
-        try {
-            const response = await fetch(`/poll-updates/${this.clientId}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const updates = await response.json();
-            
-            if (updates.events && updates.events.length > 0) {
-                console.log('Processing events:', updates.events);
-                updates.events.forEach(event => {
-                    console.log('Processing event:', event);
-                    this.handlePolledEvent(event);
-                });
-            }
-        } catch (error) {
-            console.error('Polling error:', error);
-        }
-    }, 1000);
-  }
-
-  handlePolledEvent(event) {
-    console.log('Handling polled event:', event);
-    const handler = this.eventHandlers[event.type];
-    if (handler) {
-        console.log(`Found handler for event type: ${event.type}`);
-        // Call the handler directly for all events
-        handler(event.data);
-    } else {
-        console.warn('Unknown event type:', event.type);
-    }
   }
 
   async handleStepUpInitiated(stepUpId) {
     console.log('Handling step-up initiation with ID:', stepUpId);
     try {
-        console.log('Step-up ID received:', stepUpId);
+      console.log('Step-up ID received:', stepUpId);
     } catch (error) {
-        console.error('Error displaying step-up ID:', error);
+      console.error('Error displaying step-up ID:', error);
     }
   }
 
@@ -356,33 +370,43 @@ class Stronghold {
     this.handleAuthComplete();
   }
 
-  async startStepUp() {
-    console.log('Starting step-up process');
-    try {
-        // Initialize new SSE connection
-        const clientId = await this.initializeStepUp('step-up-container', '/register-sse');
-        console.log('Got client ID:', clientId);
-        
-        // Initiate step-up
-        const result = await fetch(`/initiate-step-up/${clientId}`, {
-            method: 'POST'
-        });
-        const data = await result.json();
-        console.log('Step-up initiated response:', data);
-        
-        // Clear any existing status
-        const statusDiv = document.getElementById('status');
-        if (statusDiv) {
-            statusDiv.textContent = '';
-            statusDiv.className = '';
+  startPolling() {
+    console.log('Starting polling for updates');
+    if (this.pollingInterval) {
+      console.log('Clearing existing polling interval');
+      clearInterval(this.pollingInterval);
+    }
+    
+    this.pollingInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/poll-updates/${this.clientId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-    } catch (error) {
-        console.error('Step-up error:', error);
-        const statusDiv = document.getElementById('status');
-        if (statusDiv) {
-            statusDiv.textContent = 'Error starting step-up: ' + error.message;
-            statusDiv.className = 'status error';
+        const updates = await response.json();
+        
+        if (updates.events && updates.events.length > 0) {
+          console.log('Processing events:', updates.events);
+          updates.events.forEach(event => {
+            console.log('Processing event:', event);
+            this.handlePolledEvent(event);
+          });
         }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 1000);
+  }
+
+  handlePolledEvent(event) {
+    console.log('Handling polled event:', event);
+    const handler = this.eventHandlers[event.type];
+    if (handler) {
+      console.log(`Found handler for event type: ${event.type}`);
+      // Call the handler directly for all events
+      handler(event.data);
+    } else {
+      console.warn('Unknown event type:', event.type);
     }
   }
 }

@@ -1,9 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stronghold Step-up Demo</title>
+{% extends "base.html" %}
+
+{% block title %}Stronghold Step-up Demo{% endblock %}
+
+{% block extra_head %}
     <script src="/static/qrcode.min.js"></script>
     <!-- Ionic Core -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
@@ -81,45 +80,200 @@
             background-color: #f8d7da;
             color: #721c24;
         }
+        .step {
+            display: none;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .step.active {
+            display: block;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        .step-dot.active {
+            background: #2e627b;
+        }
+        .login-container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .input-label {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .username-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #2e627b;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        .continue-button {
+            width: 100%;
+            padding: 12px;
+            background: #2e627b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+        .continue-button:hover {
+            background: #265367;
+        }
+        .help-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .help-link a {
+            color: #2e627b;
+            text-decoration: none;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        .footer-links a {
+            color: #666;
+            text-decoration: none;
+        }
+        .footer-text {
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 12px;
+        }
+        .confirmation-container {
+            text-align: center;
+            padding: 20px;
+        }
+        .cancel-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .email-pill {
+            background: #f5f6f7;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 20px 0;
+        }
+        .email-pill .icon {
+            color: #666;
+            opacity: 0.7;
+        }
+        .auth-question {
+            font-size: 24px;
+            color: #333;
+            margin: 30px 0;
+            line-height: 1.3;
+        }
+        .choice-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .choice-button {
+            padding: 12px 60px;
+            border: 1px solid;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .choice-button.no {
+            border-color: #dc3545;
+            color: #dc3545;
+            background: white;
+        }
+        .choice-button.yes {
+            border-color: #28a745;
+            color: #28a745;
+            background: white;
+        }
     </style>
-</head>
-<body>
+{% endblock %}
+
+{% block content %}
     <div class="container">
-        <h1>Stronghold Step-up Demo</h1>
-        <div style="color: #666; margin-bottom: 10px;">Version 2.0.106</div>
-        <div style="margin-bottom: 20px; text-align: center;">
-            <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                https://stronghold.onrender.com/mobile
-            </div>
+        <img src="/static/JPMorganLogo.png" alt="J.P. Morgan" style="width: 200px; margin: 20px 0;">
+        
+        <!-- Step 1: Username Entry -->
+        <div class="step active" id="step1">
+            <div id="login-form-container"></div>
         </div>
-    
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
-            <div id="auth-level" style="color: #28a745; font-weight: bold;">Auth Level: AAL2</div>
-            <button id="downgrade-button" onclick="stronghold.downgradeAAL()" style="display: none; padding: 5px 10px; font-size: 12px;">Downgrade to AAL2</button>
-        </div>
-    
-        <div id="pin-selector">
-            <div class="input-group">
+        
+        <!-- Step 2: PIN Entry -->
+        <div class="step" id="step2">
+            <div class="confirmation-container">
+                <a href="#" class="cancel-link" onclick="showStep(1)">Cancel</a>
                 <h3>User Code</h3>
                 <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
-                    Generating...
+                    Generating code...
                 </div>
-                <div id="pin-message-box" style="display: none; margin-top: 20px;">
-                    <input type="text" 
-                           id="pin-message" 
-                           placeholder="Enter your message..." 
-                           style="width: 100%; padding: 10px; margin-bottom: 10px;">
-                    <button onclick="handleMessageSubmit()" 
-                            style="width: 100%; padding: 10px;">
-                        Send Message
-                    </button>
+                <div style="margin-top: 30px; color: #666;">
+                    https://stronghold.onrender.com/mobile
                 </div>
             </div>
         </div>
 
         <div id="status"></div>
     </div>
+{% endblock %}
 
+{% block scripts %}
+    <script src="/static/stronghold.js"></script>
+    <script src="/static/components/login-form.js"></script>
     <script>
         const statusDiv = document.getElementById('status');
         
@@ -129,49 +283,115 @@
         }
     </script>
 
-    <script src="/static/stronghold.js"></script>
+    <script>
+        // Initialize login form
+        const loginForm = new LoginForm('login-form-container', {
+            onContinue: ({ username, remember }) => {
+                // Proceed directly to code generation
+                proceedToCode();
+            }
+        });
+    </script>
 
     <script>
-        let currentClientId = null;
-        const stronghold = new Stronghold();
+        // Cookie handling functions
+        function setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+        }
 
-        // Start step-up process on page load
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        // Initialize Stronghold instance
+        const stronghold = new Stronghold();
+        let currentSessionId = null;
+        let currentClientId = null;
+
+        // Check for saved username on page load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, starting initial step-up');
-            // Start PIN selector mode
-            startStepUp('pin-selector');
+            const savedUsername = getCookie('username');
+            if (savedUsername) {
+                document.getElementById('username-input').value = savedUsername;
+                document.getElementById('remember-username').checked = true;
+            }
         });
 
-        async function startStepUp(mode) {
-            console.log('Starting step-up process for mode:', mode);
+        function showStep(stepNumber) {
+            // Hide all steps
+            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+            // Show requested step
+            document.getElementById(`step${stepNumber}`).classList.add('active');
+        }
+
+        async function startSession() {
+            const usernameInput = document.getElementById('username-input');
+            const username = usernameInput.value.trim();
+            const rememberUsername = document.getElementById('remember-username').checked;
+            
+            if (!username) {
+                showStatus('Please enter a username', 'error');
+                return;
+            }
+            
+            // Handle remember username
+            if (rememberUsername) {
+                setCookie('username', username, 30);
+            } else {
+                setCookie('username', '', -1);
+            }
+            
+            // Update confirmation email display
+            document.getElementById('confirmation-email').textContent = username;
+            
+            // Show confirmation step
+            showStep(2);
+        }
+
+        async function proceedToCode() {
             try {
-                // Initialize SSE connection and get client ID
-                console.log('Initializing SSE connection');
-                currentClientId = await stronghold.initializeStepUp('step-up-container', '/register-sse');
-                console.log('Received client ID:', currentClientId);
-                
-                // Get PIN from server
-                console.log('Requesting PIN for client:', currentClientId);
-                document.getElementById('browser-pin').textContent = 'Generating...';
-                const pinResponse = await fetch('/generate-pin', {
+                const username = document.getElementById('username-input').value.trim();
+                const requestData = { username };
+                console.log('Browser: Sending start-session request to server');
+                console.log('Browser: API Call - POST /start-session', requestData);
+                const response = await fetch('/start-session', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ client_id: currentClientId })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
                 });
-                if (!pinResponse.ok) {
-                    throw new Error(`HTTP error! status: ${pinResponse.status}`);
+                
+                if (!response.ok) {
+                    console.error(`Browser: Server returned status: ${response.status}`);
+                    throw new Error('Failed to start session');
                 }
-                const pinData = await pinResponse.json();
-                console.log('Received PIN:', pinData.pin);
-                document.getElementById('browser-pin').textContent = pinData.pin;
-                // Store the step_up_id in a data attribute
-                document.getElementById('browser-pin').dataset.stepUpId = pinData.step_up_id;
+                
+                const data = await response.json();
+                console.log('Browser: API Response:', data);
+                currentSessionId = data.session_id;
+                console.log(`Browser: Session started with ID: ${currentSessionId}`);
+                
+                // Display the PIN
+                document.getElementById('browser-pin').textContent = data.pin;
+                console.log(`Browser: Displaying PIN: ${data.pin}`);
+                
+                // Initialize WebSocket connection
+                await stronghold.initializeSession(data.session_id);
+                
+                // Show the PIN step after successful session start
+                showStep(2);
+                showStatus('Session started successfully', 'success');
             } catch (error) {
-                console.error('Step-up error:', error);
-                document.getElementById('browser-pin').textContent = 'Error generating PIN';
-                showStatus('Error starting step-up: ' + error.message, 'error');
+                console.error('Browser: Session error:', error);
+                showStatus('Error starting session: ' + error.message, 'error');
             }
         }
     </script>
@@ -201,5 +421,4 @@
             }
         }
     </script>
-</body>
-</html> 
+{% endblock %} 

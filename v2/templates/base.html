@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+
+    <div class="footer">
+        <div class="footer-links">
+            <a href="#">Accessibility</a>
+            <a href="#">Security</a>
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+            <a href="#">Cookie policy</a>
+        </div>
+        <div class="footer-links">
+            <a href="#">Regulatory information</a>
+        </div>
+        <div class="footer-text">
+            © 2025 J.P. Morgan Chase & Co. This site is for J.P. Morgan clients only. 
+            Individuals attempting unauthorized access will be prosecuted. RSA SecurID® 
+            is a trademark of RSA Security LLC or its affiliates.
+        </div>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

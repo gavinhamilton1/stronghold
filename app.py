@@ -20,7 +20,7 @@ from OpenSSL import SSL
 app = FastAPI()
 
 # Mount static files directory
-app.mount("/static", StaticFiles(directory="v2/static"), name="static")
+app.mount("/static", StaticFiles(directory="v2/static", html=True), name="static")
 
 # Setup templates
 templates = Jinja2Templates(directory="v2/templates")
@@ -67,15 +67,25 @@ CURRENT_PIN = None
 pins = {}  # Store PINs by client_id
 step_up_pins = {}  # Store PINs by step_up_id
 
+# Add to global variables
+active_sessions = {}  # Store username -> session_id mapping
+session_pins = {}    # Store session_id -> PIN mapping
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Serve main page"""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "continue_action": "startSession()"
+    })
 
 @app.get("/mobile", response_class=HTMLResponse)
 async def mobile(request: Request):
     """Serve mobile page"""
-    return templates.TemplateResponse("mobile.html", {"request": request})
+    return templates.TemplateResponse("mobile.html", {
+        "request": request,
+        "continue_action": "mobileStepUp.startSession()"
+    })
 
 @app.get("/webauthn", response_class=HTMLResponse)
 async def mobile(request: Request):
@@ -380,30 +390,17 @@ async def get_current_pin():
 
 @app.post("/verify-pin")
 async def verify_pin(pin_data: dict):
-    """Verify a PIN and return a step-up ID if correct"""
-    logger.info(f"📍 Received PIN verification request: {pin_data}")
-    
-    step_up_id = pin_data.get("step_up_id")
-    if not step_up_id:
-        logger.error("❌ No step_up_id provided")
-        return JSONResponse(
-            status_code=400,
-            content={"error": "No step_up_id provided"}
-        )
-
+    """Verify a PIN and return a session ID if correct"""
+    session_id = pin_data.get("session_id")
     submitted_pin = pin_data.get("pin")
-    stored_pin = step_up_pins.get(step_up_id)
-    logger.info(f"🔍 Comparing submitted PIN {submitted_pin} with stored PIN {stored_pin}")
+    
+    stored_pin = session_pins.get(session_id)
     
     if stored_pin and str(submitted_pin) == stored_pin:
-        logger.info(f"✅ PIN matched! Generated step_up_id: {step_up_id}")
-        # Clean up the used PIN
-        step_up_pins.pop(step_up_id, None)
+        # Don't remove the PIN yet as the session is still active
         return {
-            "step_up_id": step_up_id
+            "session_id": session_id
         }
-    
-    logger.info("❌ PIN did not match")
     return {}
 
 @app.post("/update-pin")
@@ -414,33 +411,48 @@ async def update_pin(pin_data: dict):
     return {"status": "success"}
 
 @app.get("/get-pin-options")
-async def get_pin_options(request: Request):
-    """Get 4 PIN options, including the valid PIN in a random position"""
-    step_up_id = request.query_params.get('step_up_id')
-    if not step_up_id:
+async def get_pin_options(request: Request, username: str = None):
+    """Get PIN options for mobile device"""
+    try:
+        logger.info(f"Getting PIN options for username: {username}")
+        if not username:
+            logger.error("No username provided")
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Username is required"}
+            )
+
+        # Get session_id for this username
+        session_id = active_sessions.get(username)
+        logger.info(f"Found session_id: {session_id} for username: {username}")
+        if not session_id:
+            logger.error(f"No active session found for username: {username}")
+            return JSONResponse(
+                status_code=404,
+                content={"error": "No active session found for username"}
+            )
+
+        # Get the correct PIN for this session
+        correct_pin = session_pins.get(session_id)
+        logger.info(f"Correct PIN for session: {correct_pin}")
+
+        # Generate 3 completely random PINs
+        pins = {correct_pin}  # Include the correct PIN
+        while len(pins) < 3:
+            pins.add(str(random.randint(10, 99)))
+        
+        # Convert to list and shuffle
+        pin_options = list(pins)
+        random.shuffle(pin_options)
+        
+        logger.info(f"Returning PIN options: {pin_options} including correct PIN: {correct_pin}")
+        return {"pins": pin_options}
+    except Exception as e:
+        logger.error(f'Error generating PIN options: {str(e)}')
         return JSONResponse(
-            status_code=404,
-            content={"error": "No step_up_id provided"}
+            status_code=500,
+            content={"error": "Failed to generate PIN options"}
         )
-    
-    stored_pin = step_up_pins.get(step_up_id)
-    if not stored_pin:
-        return JSONResponse(
-            status_code=404,
-            content={"error": "No PIN found for step_up_id"}
-        )
-    
-    # Generate 3 additional random PINs
-    pins = {stored_pin}  # Use set to avoid duplicates
-    while len(pins) < 4:
-        pins.add(str(random.randint(10000, 99999)))
-    
-    # Convert to list and shuffle
-    pin_options = list(pins)
-    random.shuffle(pin_options)
-    
-    logger.info(f"Returning PIN options including correct PIN {stored_pin}")
-    return {"pins": pin_options}
 
 @app.post("/generate-pin")
 async def generate_pin(request: Request):
@@ -455,8 +467,8 @@ async def generate_pin(request: Request):
                 content={"error": "No client_id provided"}
             )
             
-        # Generate a random 5-digit PIN
-        pin = str(random.randint(10000, 99999))
+        # Generate a random 2-digit PIN
+        pin = str(random.randint(10, 99))
         logger.info(f'Generated PIN {pin} for client {client_id}')
         
         # Store the PIN with the client_id
@@ -512,6 +524,84 @@ async def get_cert_info():
         return JSONResponse(
             status_code=500,
             content={"error": "Failed to get certificate information"}
+        )
+
+@app.post("/start-session")
+async def start_session(request: Request):
+    """Start a new session for a username"""
+    try:
+        data = await request.json()
+        username = data.get('username')
+        logger.info(f"Starting new session for username: {username}")
+        
+        if not username:
+            logger.error("No username provided in start-session")
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Username is required"}
+            )
+        
+        # Check if user already has an active session
+        existing_session_id = active_sessions.get(username)
+        if existing_session_id:
+            logger.info(f"Found existing session for {username}: {existing_session_id}")
+            # Generate new PIN for existing session
+            new_pin = str(random.randint(10, 99))
+            session_pins[existing_session_id] = new_pin
+            logger.info(f"Generated new PIN for existing session: {new_pin}")
+            return JSONResponse(content={
+                "session_id": existing_session_id,
+                "pin": new_pin
+            })
+        
+        # Generate session ID and PIN
+        session_id = str(uuid.uuid4())
+        pin = str(random.randint(10, 99))
+        logger.info(f"Generated new session_id: {session_id} with PIN: {pin}")
+        
+        # Store session information
+        active_sessions[username] = session_id
+        session_pins[session_id] = pin
+        logger.info(f"Stored session mapping: {username} -> {session_id} -> {pin}")
+        logger.info(f"Current active_sessions: {active_sessions}")
+        logger.info(f"Current session_pins: {session_pins}")
+        
+        return JSONResponse(content={
+            "session_id": session_id,
+            "pin": pin
+        })
+    except Exception as e:
+        logger.error(f'Error starting session: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+@app.get("/join-session")
+async def join_session(username: str):
+    """Get session info for a username if one exists"""
+    try:
+        logger.info(f"Checking for existing session for username: {username}")
+        
+        # Check if user has an active session
+        session_id = active_sessions.get(username)
+        if not session_id:
+            logger.error(f"No active session found for username: {username}")
+            return JSONResponse(
+                status_code=404,
+                content={"error": "No active session found"}
+            )
+        
+        logger.info(f"Found active session: {session_id} for username: {username}")
+        return JSONResponse(content={
+            "session_id": session_id
+        })
+        
+    except Exception as e:
+        logger.error(f'Error joining session: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
         )
 
 if __name__ == "__main__":
