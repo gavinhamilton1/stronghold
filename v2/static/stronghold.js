@@ -86,7 +86,17 @@ class Stronghold {
         console.log('WebSocket message received:', event.data);
         const data = JSON.parse(event.data);
         if (data.type === 'auth_complete') {
+          console.log('Received auth_complete via WebSocket');
           this.handleAuthComplete();
+          // Update the PIN display
+          if (this.containerElement) {
+            this.containerElement.innerHTML = `
+              <div style="text-align: center; padding: 20px;">
+                <h3 style="color: #28a745;">✓ PIN Verified</h3>
+                <p>Authentication level upgraded to AAL3</p>
+              </div>
+            `;
+          }
         }
       };
       
@@ -139,11 +149,11 @@ class Stronghold {
     }
     
     // Update step-up container
-    if (this.containerElement) {
-      console.log('Updating step-up container');
-      this.containerElement.innerHTML = `
+    const pinDisplay = document.getElementById('browser-pin');
+    if (pinDisplay) {
+      pinDisplay.parentElement.innerHTML = `
         <div style="text-align: center; padding: 20px;">
-          <h3 style="color: #28a745;">Step-up Complete!</h3>
+          <h3 style="color: #28a745;">✓ PIN Verified</h3>
           <p>Authentication level upgraded to AAL3</p>
         </div>
       `;
