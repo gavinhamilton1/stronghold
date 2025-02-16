@@ -44,7 +44,7 @@
         <!-- Step 3: PIN Selection -->
         <div class="step" id="step3">
             <div class="confirmation-container">
-                <a href="#" class="cancel-link" onclick="mobileStepUp.showStep(2)">Cancel</a>
+                <a href="#" class="cancel-link" onclick="mobileStepUp.showStep(1)">Cancel</a>
                 
                 <div class="email-pill">
                     <span class="icon">●</span>
@@ -63,26 +63,42 @@
             </div>
         </div>
 
-        <!-- Step 4: Success -->
+        <!-- Step 4: Success/Failure -->
         <div class="step" id="step4">
             <div class="success-container">
-                <img src="/static/JPMorganLogo.png" alt="J.P. Morgan" style="width: 200px; margin: 20px 0;">
-                
                 <div class="email-pill">
                     <span class="icon">●</span>
                     <span id="success-email"></span>
                 </div>
                 
-                <div class="success-icon">
-                    ✓
+                <!-- Success State -->
+                <div id="success-state">
+                    <div class="success-icon">
+                        ✓
+                    </div>
+                    
+                    <div class="success-title">
+                        Authentication approved
+                    </div>
+                    
+                    <div class="success-message">
+                        Return to your other device to continue.
+                    </div>
                 </div>
                 
-                <div class="success-title">
-                    Authentication approved
-                </div>
-                
-                <div class="success-message">
-                    Return to your other device to continue.
+                <!-- Failure State -->
+                <div id="failure-state" style="display: none;">
+                    <div class="success-icon failure">
+                        ✕
+                    </div>
+                    
+                    <div class="success-title failure">
+                        Authentication failed
+                    </div>
+                    
+                    <div class="success-message">
+                        Return to your other device to continue.
+                    </div>
                 </div>
             </div>
         </div>
@@ -107,11 +123,24 @@
         // Initialize login form
         const loginForm = new LoginForm('login-form-container', {
             onContinue: ({ username, remember }) => {
-                // Update email displays
-                document.getElementById('confirmation-email').textContent = username;
-                document.getElementById('pin-email').textContent = username;
-                // Show confirmation step
-                mobileStepUp.showStep(2);
+                if (!username || !username.trim()) {
+                    showStatus('Please enter a username', 'error');
+                    return;
+                }
+
+                // First authenticate with biometrics
+                mobileStepUp.authenticateWithBiometrics().then(success => {
+                    if (success) {
+                        // Update email displays
+                        document.getElementById('confirmation-email').textContent = username;
+                        document.getElementById('pin-email').textContent = username;
+                        // Show confirmation step
+                        mobileStepUp.showStep(2);
+                    } else {
+                        // Show error if biometric auth fails
+                        showStatus('Biometric authentication failed. Please try again.', 'error');
+                    }
+                });
             }
         });
     </script>

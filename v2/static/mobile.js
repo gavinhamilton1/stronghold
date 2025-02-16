@@ -208,53 +208,73 @@ class MobileStepUp {
                 throw new Error('No session ID available');
             }
 
-            await this.authenticateWithBiometrics()
-                .then(() => {
-                    // Clear PIN options after successful biometric auth
-                    const pinOptions = document.getElementById('pin-options');
-                    pinOptions.innerHTML = '<div style="text-align: center; padding: 20px;">PIN verification in progress...</div>';
-                    
-                    // After successful biometric auth, verify the pin
-                    return fetch('/verify-pin', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ 
-                            pin: selectedPin,
-                            session_id: this.sessionId
-                        })
-                    });
+            // Clear PIN options before verification
+            const pinOptions = document.getElementById('pin-options');
+            pinOptions.innerHTML = '<div style="text-align: center; padding: 20px;">PIN verification in progress...</div>';
+            
+            // Verify the pin
+            const response = await fetch('/verify-pin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    pin: selectedPin,
+                    session_id: this.sessionId
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.session_id) {
-                        mobileDebug.log('PIN verified successfully');
-                        // Show success screen
-                        document.getElementById('success-email').textContent = 
-                            document.getElementById('username-input').value.trim();
-                        this.showStep(4);
-                    } else {
-                        mobileDebug.error('Incorrect PIN selected');
-                        const pinOptions = document.getElementById('pin-options');
-                        pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Incorrect PIN. Please try again.</div>';
-                    }
-                });
+            });
+            
+            const data = await response.json();
+            if (data.session_id) {
+                mobileDebug.log('PIN verified successfully');
+                // Show success screen
+                document.getElementById('success-email').textContent = 
+                    document.getElementById('username-input').value.trim();
+                document.getElementById('success-state').style.display = 'block';
+                document.getElementById('failure-state').style.display = 'none';
+                this.showStep(4);
+            } else {
+                mobileDebug.error('Incorrect PIN selected');
+                // Show failure screen
+                document.getElementById('success-email').textContent = 
+                    document.getElementById('username-input').value.trim();
+                document.getElementById('success-state').style.display = 'none';
+                document.getElementById('failure-state').style.display = 'block';
+                this.showStep(4);
+            }
         } catch (error) {
             window.mobileDebug.error('Network error: ' + error.message);
-            // Show error message in place of PIN options
-            const pinOptions = document.getElementById('pin-options');
-            pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Network error. Please try again.</div>';
+            // Show failure screen for network error
+            document.getElementById('success-email').textContent = 
+                document.getElementById('username-input').value.trim();
+            document.getElementById('success-state').style.display = 'none';
+            document.getElementById('failure-state').style.display = 'block';
+            this.showStep(4);
         }
     }
 
     async authenticateWithBiometrics() {
         try {
+            const username = document.getElementById('username-input').value.trim();
+            
+            if (!username) {
+                window.mobileDebug.error('Username is required');
+                return false;
+            }
+
+            // Create a credential ID based on username
+            const credentialId = new TextEncoder().encode(username);
+
             // Try to authenticate with biometrics
             const assertion = await navigator.credentials.get({
                 publicKey: {
                     challenge: new Uint8Array(32),
                     rpId: window.location.hostname,
+                    allowCredentials: [{
+                        id: credentialId,
+                        type: 'public-key',
+                        transports: ['internal']
+                    }],
                     userVerification: "required",
                 }
             });
@@ -341,6 +361,8 @@ class MobileStepUp {
         });
         // Show requested step
         document.getElementById(`step${stepNumber}`).classList.add('active');
+        // Show footer only on login step
+        document.body.classList.toggle('show-footer', stepNumber === 1);
     }
 }
 

@@ -159,10 +159,19 @@ body {
     font-size: 30px;
 }
 
+.success-icon.failure {
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
 .success-title {
     font-size: 24px;
     color: #333;
     margin: 20px 0;
+}
+
+.success-title.failure {
+    color: #dc3545;
 }
 
 .success-message {
@@ -199,6 +208,11 @@ body {
     padding: 20px;
     color: #666;
     font-size: 14px;
+    display: none;
+}
+
+.show-footer .footer {
+    display: block;
 }
 
 .footer-links {

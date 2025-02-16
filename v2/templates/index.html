@@ -331,6 +331,8 @@
             document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
             // Show requested step
             document.getElementById(`step${stepNumber}`).classList.add('active');
+            // Show footer only on login step
+            document.body.classList.toggle('show-footer', stepNumber === 1);
         }
 
         async function startSession() {
