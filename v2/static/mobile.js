@@ -294,14 +294,11 @@ class MobileStepUp {
                     return false;
                 }
                 
-                if (error.name !== 'InvalidStateError') {
-                    window.mobileDebug.error('Unexpected error during authentication: ' + error.name);
-                    return false;
-                }
-
                 // If authentication fails, create a new passkey
                 window.mobileDebug.log('No existing passkey, creating new one');
                 try {
+                    // Request biometric enrollment
+                    window.mobileDebug.log('Requesting biometric enrollment');
                     const credential = await navigator.credentials.create({
                         publicKey: {
                             challenge: new Uint8Array(32),
@@ -329,6 +326,8 @@ class MobileStepUp {
                         window.mobileDebug.log('Successfully created new passkey');
                         return true;
                     }
+                    window.mobileDebug.error('Failed to create credential');
+                    return false;
                 } catch (createError) {
                     if (createError.name === 'NotAllowedError') {
                         window.mobileDebug.error('Biometric enrollment was denied');
@@ -342,7 +341,6 @@ class MobileStepUp {
             window.mobileDebug.error('Biometric authentication failed: ' + error);
             return false;
         }
-        return false;
     }
 
     handleSuccessfulAuth() {
