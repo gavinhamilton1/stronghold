@@ -255,82 +255,63 @@ class MobileStepUp {
 
     async authenticateWithBiometrics() {
         try {
-            const username = document.getElementById('username-input').value.trim();
-            
-            if (!username) {
-                window.mobileDebug.error('Username is required');
-                return false;
-            }
-
-            // Create a simple credential ID
-            const credentialId = new TextEncoder().encode(username);
-
-            let assertion;
-            try {
-                // Try to authenticate with existing passkey first
-                window.mobileDebug.log('Attempting to authenticate with existing passkey');
-                assertion = await navigator.credentials.get({
-                    publicKey: {
-                        challenge: new Uint8Array(32),
-                        rpId: window.location.hostname,
-                        allowCredentials: [{
-                            id: credentialId,
-                            type: 'public-key',
-                            transports: ['internal']
-                        }],
-                        userVerification: "required",
-                    }
-                });
-            } catch (error) {
-                window.mobileDebug.log('Authentication error:', error.name);
-                if (error.name === 'NotAllowedError') {
-                    window.mobileDebug.error('Biometric authentication was denied');
-                    return false;
+            // Try to authenticate first with strict biometric requirements
+            const assertion = await navigator.credentials.get({
+                publicKey: {
+                    challenge: new Uint8Array(32),
+                    rpId: window.location.hostname,
+                    userVerification: "required",
                 }
-                
-                window.mobileDebug.log('No existing passkey found, creating new one');
-                // Create a new passkey
-                const credential = await navigator.credentials.create({
-                    publicKey: {
-                        challenge: new Uint8Array(32),
-                        rp: {
-                            name: "J.P. Morgan Digital",
-                            id: window.location.hostname
-                        },
-                        user: {
-                            id: credentialId,
-                            name: username,
-                            displayName: username
-                        },
-                        pubKeyCredParams: [{
-                            type: "public-key",
-                            alg: -7
-                        }],
-                        authenticatorSelection: {
-                            authenticatorAttachment: "platform",
-                            userVerification: "required",
-                            residentKey: "required"
-                        }
+            });
+            
+            if (assertion) {
+                window.mobileDebug.log('Successfully authenticated with existing passkey');
+                return true;
+            }
+        } catch (error) {
+            // If authentication fails, try registration with strict biometric requirements
+            window.mobileDebug.log('No existing passkey, attempting registration');
+            try {
+                const publicKey = {
+                    challenge: new Uint8Array(32),
+                    rp: {
+                        name: "Stronghold Step-up",
+                        id: window.location.hostname
+                    },
+                    user: {
+                        id: new Uint8Array(16),
+                        name: "stronghold-user",
+                        displayName: "Stronghold User"
+                    },
+                    pubKeyCredParams: [{alg: -7, type: "public-key"}],
+                    authenticatorSelection: {
+                        authenticatorAttachment: "platform",
+                        userVerification: "required",
+                        requireResidentKey: true,
+                        residentKey: "required"
+                    },
+                    attestation: "direct",
+                    extensions: {
+                        credProps: true,
+                        uvm: true
                     }
+                };
+
+                const credential = await navigator.credentials.create({
+                    publicKey
                 });
                 
                 if (credential) {
-                    window.mobileDebug.log('Successfully created and enrolled new passkey');
+                    window.mobileDebug.log('Successfully registered new passkey');
                     return true;
                 }
-                window.mobileDebug.error('Failed to create passkey');
+            } catch (regError) {
+                window.mobileDebug.error('Failed to register passkey: ' + regError);
                 return false;
             }
-            
-            if (assertion) {
-                window.mobileDebug.log('Successfully authenticated with biometrics');
-                return true;
-            }
-            return false;
-        } catch (error) {
-            window.mobileDebug.error('Biometric authentication failed: ' + error);
             return false;
         }
+        return false;
     }
 
     handleSuccessfulAuth() {
