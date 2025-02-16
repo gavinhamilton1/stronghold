@@ -268,10 +268,11 @@ class MobileStepUp {
                 new TextEncoder().encode(username)
             );
 
+            let assertion;
             try {
                 // Try to authenticate with existing passkey first
                 window.mobileDebug.log('Attempting to authenticate with existing passkey');
-                const assertion = await navigator.credentials.get({
+                assertion = await navigator.credentials.get({
                     publicKey: {
                         challenge: new Uint8Array(32),
                         rpId: window.location.hostname,
@@ -283,60 +284,50 @@ class MobileStepUp {
                         userVerification: "required",
                     }
                 });
-                
-                if (assertion) {
-                    window.mobileDebug.log('Successfully authenticated with biometrics');
-                    return true;
-                }
             } catch (error) {
                 if (error.name === 'NotAllowedError') {
                     window.mobileDebug.error('Biometric authentication was denied');
                     return false;
                 }
                 
-                // If authentication fails, create a new passkey
-                window.mobileDebug.log('No existing passkey, creating new one');
-                try {
-                    // Request biometric enrollment
-                    window.mobileDebug.log('Requesting biometric enrollment');
-                    const credential = await navigator.credentials.create({
-                        publicKey: {
-                            challenge: new Uint8Array(32),
-                            rp: {
-                                name: "J.P. Morgan Digital",
-                                id: window.location.hostname
-                            },
-                            user: {
-                                id: new Uint8Array(credentialId),
-                                name: username,
-                                displayName: username
-                            },
-                            pubKeyCredParams: [{
-                                type: "public-key",
-                                alg: -7
-                            }],
-                            authenticatorSelection: {
-                                authenticatorAttachment: "platform",
-                                userVerification: "required"
-                            }
+                window.mobileDebug.log('No existing passkey found, creating new one');
+                // Create a new passkey
+                const credential = await navigator.credentials.create({
+                    publicKey: {
+                        challenge: new Uint8Array(32),
+                        rp: {
+                            name: "J.P. Morgan Digital",
+                            id: window.location.hostname
+                        },
+                        user: {
+                            id: new Uint8Array(credentialId),
+                            name: username,
+                            displayName: username
+                        },
+                        pubKeyCredParams: [{
+                            type: "public-key",
+                            alg: -7
+                        }],
+                        authenticatorSelection: {
+                            authenticatorAttachment: "platform",
+                            userVerification: "required"
                         }
-                    });
-                    
-                    if (credential) {
-                        window.mobileDebug.log('Successfully created new passkey');
-                        return true;
                     }
-                    window.mobileDebug.error('Failed to create credential');
-                    return false;
-                } catch (createError) {
-                    if (createError.name === 'NotAllowedError') {
-                        window.mobileDebug.error('Biometric enrollment was denied');
-                    } else {
-                        window.mobileDebug.error('Failed to create passkey: ' + createError.name);
-                    }
-                    return false;
+                });
+                
+                if (credential) {
+                    window.mobileDebug.log('Successfully created and enrolled new passkey');
+                    return true;
                 }
+                window.mobileDebug.error('Failed to create passkey');
+                return false;
             }
+            
+            if (assertion) {
+                window.mobileDebug.log('Successfully authenticated with biometrics');
+                return true;
+            }
+            return false;
         } catch (error) {
             window.mobileDebug.error('Biometric authentication failed: ' + error);
             return false;
