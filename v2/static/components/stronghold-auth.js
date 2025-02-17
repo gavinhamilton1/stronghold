@@ -1,5 +1,6 @@
 class StrongholdAuth {
     constructor(containerId, options = {}) {
+        this.initialized = false;
         this.container = document.getElementById(containerId);
         this.options = {
             autoStart: false,
@@ -7,15 +8,69 @@ class StrongholdAuth {
             onAuthComplete: () => {},
             onAuthFailed: () => {},
             showCancel: false,
+            baseUrl: '', // Base URL for the Stronghold service
             ...options
         };
-        this.stronghold = new Stronghold();
         this.currentSessionId = null;
         
-        this.initialize();
+        if (!this.options.baseUrl) {
+            // Try to auto-detect the base URL from the script source
+            const scriptElement = document.querySelector('script[src*="stronghold-auth.js"]');
+            if (scriptElement) {
+                this.options.baseUrl = new URL(scriptElement.src).origin;
+            } else {
+                console.warn('No baseUrl provided and unable to auto-detect. Using current origin.');
+                this.options.baseUrl = window.location.origin;
+            }
+        }
+        
+        this.loadDependencies().then(() => {
+            this.stronghold = new Stronghold();
+            this.initialize();
+        });
+    }
+
+    async loadDependencies() {
+        // Load CSS
+        const cssUrl = `${this.options.baseUrl}/static/css/styles.css`;
+        if (!document.querySelector(`link[href="${cssUrl}"]`)) {
+            const cssLink = document.createElement('link');
+            cssLink.rel = 'stylesheet';
+            cssLink.href = cssUrl;
+            document.head.appendChild(cssLink);
+        }
+
+        // Helper function to load script
+        const loadScript = async (src) => {
+            const fullUrl = `${this.options.baseUrl}${src}`;
+            if (!document.querySelector(`script[src="${fullUrl}"]`)) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = fullUrl;
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.body.appendChild(script);
+                });
+            }
+        };
+
+        // Load scripts in order
+        try {
+            await loadScript('/static/stronghold.js');
+            await loadScript('/static/components/login-form.js');
+            this.initialized = true;
+        } catch (error) {
+            console.error('Error loading dependencies:', error);
+            throw new Error('Failed to load StrongholdAuth dependencies');
+        }
     }
 
     initialize() {
+        if (!this.initialized) {
+            console.error('StrongholdAuth not initialized. Dependencies may not be loaded.');
+            return;
+        }
+
         const cancelButton = this.options.showCancel ? 
             `<a href="#" class="cancel-link" onclick="document.getElementById('${this.container.id}').strongholdAuth.showStep(1)">Cancel</a>` : 
             '';
@@ -73,10 +128,11 @@ class StrongholdAuth {
     async startSession(username) {
         try {
             console.log('Browser: Sending start-session request to server');
-            const response = await fetch('/start-session', {
+            const response = await fetch(`${this.options.baseUrl}/start-session`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username })
+                body: JSON.stringify({ username }),
+                credentials: 'include' // Include cookies for cross-origin requests
             });
             console.log('Browser: API Call - POST /start-session', { username });
             
@@ -159,8 +215,9 @@ class StrongholdAuth {
         
         // Delete the failed session
         if (this.currentSessionId) {
-            fetch(`/delete-session/${this.currentSessionId}`, {
-                method: 'DELETE'
+            fetch(`${this.options.baseUrl}/delete-session/${this.currentSessionId}`, {
+                method: 'DELETE',
+                credentials: 'include'
             }).catch(error => {
                 console.error('Error deleting session:', error);
             });

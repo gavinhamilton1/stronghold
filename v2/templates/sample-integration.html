@@ -1,25 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Stronghold Integration Example{% endblock %}
-
-{% block extra_head %}
-    <link rel="stylesheet" href="/static/css/styles.css">
-{% endblock %}
+{% block title %}Stronghold Integration Examples{% endblock %}
 
 {% block content %}
     <div class="page-container">
-        <div id="auto-auth-container"></div>
+           <div id="stronghold-container"></div>
     </div>
 {% endblock %}
 
 {% block scripts %}
-    <script src="/static/stronghold.js"></script>
-    <script src="/static/components/login-form.js"></script>
     <script src="/static/components/stronghold-auth.js"></script>
     <script>
-        // Initialize auto-start instance
-        new StrongholdAuth('auto-auth-container', {
+        new StrongholdAuth('stronghold-container', {
             username: 'gavin',
+            baseUrl: 'https://stronghold-test.onrender.com/',  // Point to different API domain
             autoStart: true,
             showCancel: false,
             onAuthComplete: () => {
@@ -30,4 +24,5 @@
             }
         });
     </script>
+
 {% endblock %} 
