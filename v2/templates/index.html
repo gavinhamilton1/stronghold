@@ -153,6 +153,23 @@
 
         async function proceedToCode() {
             try {
+                // Reset any existing session
+                if (currentSessionId) {
+                    // Reset Stronghold instance
+                    if (stronghold) {
+                        if (stronghold.ws) {
+                            stronghold.ws.close();
+                            stronghold.ws = null;
+                        }
+                        if (stronghold.pollingInterval) {
+                            clearInterval(stronghold.pollingInterval);
+                            stronghold.pollingInterval = null;
+                        }
+                        stronghold.sessionId = null;
+                    }
+                    currentSessionId = null;
+                }
+                
                 const username = document.getElementById('username-input').value.trim();
                 const requestData = { username };
                 console.log('Browser: Sending start-session request to server');

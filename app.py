@@ -414,14 +414,22 @@ async def verify_pin(request: Request):
                 logger.info(f'Adding auth_complete event to polling queue for session {session_id}')
                 POLLING_EVENTS[session_id].append(event)
             
-            # Also send through WebSocket if connected
-            if session_id in WS_CONNECTIONS:
-                logger.info(f'Sending auth_complete through WebSocket for session {session_id}')
-                await WS_CONNECTIONS[session_id].send_json(event)
-            
             return JSONResponse(content={'session_id': session_id})
         else:
             logger.error(f'PIN verification failed for session {session_id}: user entered {pin}, expected {correct_pin}')
+            # Clean up failed session
+            if session_id in session_pins:
+                del session_pins[session_id]
+            if session_id in POLLING_EVENTS:
+                del POLLING_EVENTS[session_id]
+            if session_id in WS_CONNECTIONS:
+                del WS_CONNECTIONS[session_id]
+            # Remove from active_sessions
+            for username, sess_id in list(active_sessions.items()):
+                if sess_id == session_id:
+                    del active_sessions[username]
+            logger.info(f'Cleaned up failed session {session_id}')
+            
             # Send auth_failed event through WebSocket
             if session_id in WS_CONNECTIONS:
                 logger.info(f'Sending auth_failed through WebSocket for session {session_id}')
