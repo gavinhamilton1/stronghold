@@ -190,18 +190,19 @@
                 currentSessionId = data.session_id;
                 console.log(`Browser: Session started with ID: ${currentSessionId}`);
                 
-                // Reset the PIN display first
-                const pinElement = document.getElementById('browser-pin');
-                if (pinElement) {
-                    pinElement.textContent = 'Generating code...';
-                }
-                
                 // Show the PIN step
                 showStep(2);
                 
-                // Update the PIN display
-                if (pinElement) {
-                    pinElement.textContent = data.pin;
+                // Update the confirmation container to show the new PIN
+                const confirmationContainer = document.querySelector('.confirmation-container');
+                if (confirmationContainer) {
+                    confirmationContainer.innerHTML = `
+                        <a href="#" class="cancel-link" onclick="showStep(1)">Cancel</a>
+                        <h3>User Code</h3>
+                        <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
+                            ${data.pin}
+                        </div>
+                    `;
                     console.log(`Browser: Displaying PIN: ${data.pin}`);
                 }
                 
