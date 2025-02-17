@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="/static/css/styles.css" />
     {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %} show-footer">
+<body class="{% block body_class %}{% endblock %}">
     {% block content %}{% endblock %}
 
+    {% if show_footer %}
     <div class="footer">
         <div class="footer-links">
             <a href="#">Accessibility</a>
@@ -27,6 +28,7 @@
             is a trademark of RSA Security LLC or its affiliates.
         </div>
     </div>
+    {% endif %}
 
     {% block scripts %}{% endblock %}
 </body>

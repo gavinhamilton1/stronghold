@@ -11,7 +11,6 @@
 
 {% block content %}
     <div class="container">
-        <img src="/static/JPMorganLogo.png" alt="J.P. Morgan" style="width: 200px; margin: 20px 0;">
         
         <!-- Step 1: Username Entry -->
         <div class="step active" id="step1">
@@ -126,8 +125,6 @@
             document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
             // Show requested step
             document.getElementById(`step${stepNumber}`).classList.add('active');
-            // Show footer only on login step
-            document.body.classList.toggle('show-footer', stepNumber === 1);
         }
 
         async function startSession() {

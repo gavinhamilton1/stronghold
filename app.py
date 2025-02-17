@@ -77,7 +77,8 @@ async def home(request: Request):
     """Serve main page"""
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "continue_action": "startSession()"
+        "continue_action": "startSession()",
+        "show_footer": False
     })
 
 @app.get("/mobile", response_class=HTMLResponse)
@@ -85,7 +86,8 @@ async def mobile(request: Request):
     """Serve mobile page"""
     return templates.TemplateResponse("mobile.html", {
         "request": request,
-        "continue_action": "mobileStepUp.startSession()"
+        "continue_action": "mobileStepUp.startSession()",
+        "show_footer": True
     })
 
 @app.get("/webauthn", response_class=HTMLResponse)

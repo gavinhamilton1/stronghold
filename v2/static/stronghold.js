@@ -161,8 +161,8 @@ class Stronghold {
     }
     
     // Start AAL timer
-    console.log('Starting AAL timer');
-    this.startAALTimer(20);
+    //console.log('Starting AAL timer');
+    //this.startAALTimer(20);
   }
 
   handleMobileMessage(content) {
