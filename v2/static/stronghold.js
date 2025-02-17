@@ -155,7 +155,6 @@ class Stronghold {
       pinContainer.innerHTML = `
         <div style="text-align: center; padding: 20px;">
           <h3 style="color: #28a745;">✓ PIN Verified</h3>
-          <p>Authentication level upgraded to AAL3</p>
         </div>
       `;
     }
