@@ -45,6 +45,9 @@ class MobileStepUp {
     async loadPinOptions() {
         try {
             const username = document.getElementById('username-input').value.trim();
+            // Update email display in PIN selector screen
+            document.getElementById('pin-email').textContent = username;
+            
             window.mobileDebug.log('Checking for active session');
             window.mobileDebug.log('API Call - GET /join-session?username=' + username);
             const response = await fetch(`/join-session?username=${encodeURIComponent(username)}`);
