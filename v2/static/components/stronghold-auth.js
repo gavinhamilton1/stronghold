@@ -6,6 +6,7 @@ class StrongholdAuth {
             username: null,
             onAuthComplete: () => {},
             onAuthFailed: () => {},
+            showCancel: false,
             ...options
         };
         this.stronghold = new Stronghold();
@@ -15,6 +16,10 @@ class StrongholdAuth {
     }
 
     initialize() {
+        const cancelButton = this.options.showCancel ? 
+            `<a href="#" class="cancel-link" onclick="document.getElementById('${this.container.id}').strongholdAuth.showStep(1)">Cancel</a>` : 
+            '';
+
         // Create the basic structure
         this.container.innerHTML = `
             <div class="stronghold-container">
@@ -26,7 +31,7 @@ class StrongholdAuth {
                 <!-- Step 2: PIN Entry -->
                 <div class="step" id="${this.container.id}-step2">
                     <div class="confirmation-container">
-                        <a href="#" class="cancel-link" onclick="document.getElementById('${this.container.id}').strongholdAuth.showStep(1)">Cancel</a>
+                        ${cancelButton}
                         <h3>User Code</h3>
                         <div class="pin-container">
                             <div id="${this.container.id}-browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
@@ -67,18 +72,23 @@ class StrongholdAuth {
 
     async startSession(username) {
         try {
+            console.log('Browser: Sending start-session request to server');
             const response = await fetch('/start-session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username })
             });
+            console.log('Browser: API Call - POST /start-session', { username });
             
             if (!response.ok) {
+                console.error(`Browser: Server returned status: ${response.status}`);
                 throw new Error('Failed to start session');
             }
             
             const data = await response.json();
+            console.log('Browser: API Response:', data);
             this.currentSessionId = data.session_id;
+            console.log(`Browser: Session started with ID: ${this.currentSessionId}`);
             
             // Show the PIN step
             this.showStep(2);
@@ -87,6 +97,7 @@ class StrongholdAuth {
             const pinContainer = this.container.querySelector(`#${this.container.id}-browser-pin`);
             if (pinContainer) {
                 pinContainer.textContent = data.pin;
+                console.log(`Browser: Displaying PIN: ${data.pin}`);
             }
             
             // Initialize WebSocket connection
@@ -94,6 +105,7 @@ class StrongholdAuth {
             
             // Override Stronghold handlers to use our container
             this.stronghold.handleAuthComplete = () => {
+                console.log('Browser: Auth completed successfully');
                 const pinContainer = this.container.querySelector('.pin-container');
                 if (pinContainer) {
                     pinContainer.innerHTML = `
@@ -107,6 +119,7 @@ class StrongholdAuth {
             };
             
             this.stronghold.handleAuthFailed = () => {
+                console.log('Browser: Auth failed');
                 const pinContainer = this.container.querySelector('.pin-container');
                 if (pinContainer) {
                     pinContainer.innerHTML = `
@@ -126,7 +139,7 @@ class StrongholdAuth {
                 this.options.onAuthFailed();
             };
         } catch (error) {
-            console.error('Session error:', error);
+            console.error('Browser: Session error:', error);
             this.showStatus('Error starting session: ' + error.message, 'error');
         }
     }
