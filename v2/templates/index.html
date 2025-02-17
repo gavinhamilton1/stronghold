@@ -10,9 +10,23 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: flex-start;
+            min-height: 100vh;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            background-color: white;
+            min-height: 100vh;
         }
         .content {
             display: none;
@@ -33,12 +47,6 @@
             margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 4px;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
         }
         .controls {
             display: flex;
@@ -85,6 +93,7 @@
             width: 100%;
             max-width: 400px;
             margin: 0 auto;
+            text-align: center;
         }
         .step.active {
             display: block;
@@ -185,7 +194,14 @@
             font-size: 12px;
         }
         .confirmation-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             text-align: center;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
             padding: 20px;
         }
         .cancel-link {
@@ -240,6 +256,18 @@
             border-color: #28a745;
             color: #28a745;
             background: white;
+        }
+        #browser-pin {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        #status {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            text-align: center;
         }
     </style>
 {% endblock %}
