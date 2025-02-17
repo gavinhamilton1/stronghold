@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Stronghold Integration Example{% endblock %}
+
+{% block extra_head %}
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
+    <link rel="stylesheet" href="/static/css/styles.css">
+{% endblock %}
+
+{% block content %}
+    <div class="page-container">
+        <h1>Sample Integration Page</h1>
+        
+        <!-- Example with auto-start -->
+        <div class="auth-section">
+            <h2>Auto-start Authentication</h2>
+            <div id="auto-auth-container"></div>
+        </div>
+
+        <!-- Example with manual login -->
+        <div class="auth-section">
+            <h2>Manual Login Authentication</h2>
+            <div id="manual-auth-container"></div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/static/stronghold.js"></script>
+    <script src="/static/components/login-form.js"></script>
+    <script src="/static/components/stronghold-auth.js"></script>
+    <script>
+        // Initialize auto-start instance
+        new StrongholdAuth('auto-auth-container', {
+            username: 'auto-user@example.com',
+            autoStart: true,
+            onAuthComplete: () => {
+                console.log('Auto-start auth completed');
+            },
+            onAuthFailed: () => {
+                console.log('Auto-start auth failed');
+            }
+        });
+
+        // Initialize manual login instance
+        new StrongholdAuth('manual-auth-container', {
+            onAuthComplete: () => {
+                console.log('Manual auth completed');
+            },
+            onAuthFailed: () => {
+                console.log('Manual auth failed');
+            }
+        });
+    </script>
+{% endblock %} 

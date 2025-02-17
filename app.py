@@ -722,6 +722,14 @@ async def delete_session(session_id: str):
             content={'error': str(e)}
         )
 
+@app.get("/sample", response_class=HTMLResponse)
+async def sample(request: Request):
+    """Serve sample integration page"""
+    return templates.TemplateResponse("sample-integration.html", {
+        "request": request,
+        "show_footer": False
+    })
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 
