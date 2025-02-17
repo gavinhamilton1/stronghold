@@ -417,26 +417,44 @@ async def verify_pin(request: Request):
             return JSONResponse(content={'session_id': session_id})
         else:
             logger.error(f'PIN verification failed for session {session_id}: user entered {pin}, expected {correct_pin}')
-            # Clean up failed session
-            if session_id in session_pins:
-                del session_pins[session_id]
-            if session_id in POLLING_EVENTS:
-                del POLLING_EVENTS[session_id]
-            if session_id in WS_CONNECTIONS:
-                del WS_CONNECTIONS[session_id]
-            # Remove from active_sessions
-            for username, sess_id in list(active_sessions.items()):
-                if sess_id == session_id:
-                    del active_sessions[username]
-            logger.info(f'Cleaned up failed session {session_id}')
             
             # Send auth_failed event through WebSocket
             if session_id in WS_CONNECTIONS:
                 logger.info(f'Sending auth_failed through WebSocket for session {session_id}')
-                await WS_CONNECTIONS[session_id].send_json({
-                    'type': 'auth_failed',
-                    'timestamp': datetime.now().isoformat()
-                })
+                try:
+                    await WS_CONNECTIONS[session_id].send_json({
+                        'type': 'auth_failed',
+                        'timestamp': datetime.now().isoformat()
+                    })
+                    
+                    # Add cleanup event to polling queue
+                    if session_id in POLLING_EVENTS:
+                        POLLING_EVENTS[session_id].append({
+                            'type': 'cleanup_session',
+                            'timestamp': datetime.now().isoformat()
+                        })
+                        
+                    # Clean up session after browser has been notified
+                    async def delayed_cleanup():
+                        await asyncio.sleep(1)  # Give browser time to process the auth_failed event
+                        if session_id in session_pins:
+                            del session_pins[session_id]
+                        if session_id in POLLING_EVENTS:
+                            del POLLING_EVENTS[session_id]
+                        if session_id in WS_CONNECTIONS:
+                            del WS_CONNECTIONS[session_id]
+                        # Remove from active_sessions
+                        for username, sess_id in list(active_sessions.items()):
+                            if sess_id == session_id:
+                                del active_sessions[username]
+                        logger.info(f'Cleaned up failed session {session_id}')
+                    
+                    # Schedule the cleanup
+                    asyncio.create_task(delayed_cleanup())
+                    
+                except Exception as e:
+                    logger.error(f'Error sending auth_failed event: {str(e)}')
+            
             return JSONResponse(
                 status_code=400,
                 content={'error': 'Invalid PIN'}
