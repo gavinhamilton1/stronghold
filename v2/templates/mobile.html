@@ -157,11 +157,8 @@
                 // First authenticate with biometrics
                 mobileStepUp.authenticateWithBiometrics().then(success => {
                     if (success) {
-                        // Update email displays
-                        document.getElementById('confirmation-email').textContent = username;
-                        document.getElementById('pin-email').textContent = username;
-                        // Show confirmation step
-                        mobileStepUp.showStep(2);
+                        // Check for active session and show appropriate screen
+                        mobileStepUp.showConfirmation(username);
                     } else {
                         // Show error if biometric auth fails
                         showStatus('Biometric authentication failed. Please try again.', 'error');
