@@ -10,19 +10,7 @@
 
 {% block content %}
     <div class="page-container">
-        <h1>Sample Integration Page</h1>
-        
-        <!-- Example with auto-start -->
-        <div class="auth-section">
-            <h2>Auto-start Authentication</h2>
-            <div id="auto-auth-container"></div>
-        </div>
-
-        <!-- Example with manual login -->
-        <div class="auth-section">
-            <h2>Manual Login Authentication</h2>
-            <div id="manual-auth-container"></div>
-        </div>
+        <div id="auto-auth-container"></div>
     </div>
 {% endblock %}
 
@@ -45,13 +33,13 @@
         });
 
         // Initialize manual login instance
-        {% comment %} new StrongholdAuth('manual-auth-container', {
+        {# new StrongholdAuth('manual-auth-container', {
             onAuthComplete: () => {
                 console.log('Manual auth completed');
             },
             onAuthFailed: () => {
                 console.log('Manual auth failed');
             }
-        }); {% endcomment %}
+        }); #}
     </script>
 {% endblock %} 

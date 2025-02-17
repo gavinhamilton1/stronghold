@@ -356,4 +356,36 @@ body {
     color: #3c6c8c;
     text-decoration: none;
     font-size: 16px;
+}
+
+/* StrongholdAuth Component Styles */
+.stronghold-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    width: 100%;
+}
+
+/* Sample Integration Page Styles */
+.page-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+}
+
+.auth-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 400px;
+}
+
+#auto-auth-container {
+    width: 100%;
 } 
