@@ -211,9 +211,11 @@ class MobileStepUp {
                 throw new Error('No session ID available');
             }
 
-            // Clear PIN options before verification
-            const pinOptions = document.getElementById('pin-options');
-            pinOptions.innerHTML = '<div style="text-align: center; padding: 20px;">PIN verification in progress...</div>';
+            // Disable PIN buttons during verification
+            document.querySelectorAll('.pin-option').forEach(button => {
+                button.disabled = true;
+                button.style.opacity = '0.5';
+            });
             
             // Verify the pin
             const response = await fetch('/verify-pin', {
