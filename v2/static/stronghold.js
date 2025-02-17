@@ -301,10 +301,24 @@ class Stronghold {
         </div>
       `;
     }
+    
+    // Delete the failed session
+    if (this.sessionId) {
+      console.log('Deleting failed session:', this.sessionId);
+      fetch(`/delete-session/${this.sessionId}`, {
+        method: 'DELETE'
+      }).then(() => {
+        console.log('Session deleted successfully');
+      }).catch(error => {
+        console.error('Error deleting session:', error);
+      });
+    }
+    
     // Clear any existing polling interval
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
     }
+    
     // Close WebSocket connection
     if (this.ws) {
       this.ws.close();

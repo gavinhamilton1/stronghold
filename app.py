@@ -684,6 +684,37 @@ async def poll_updates(session_id: str):
             content={"error": str(e)}
         )
 
+@app.delete("/delete-session/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session and all its associated data"""
+    try:
+        logger.info(f'Deleting session: {session_id}')
+        # Remove from session_pins
+        if session_id in session_pins:
+            del session_pins[session_id]
+        
+        # Remove from POLLING_EVENTS
+        if session_id in POLLING_EVENTS:
+            del POLLING_EVENTS[session_id]
+        
+        # Remove from WS_CONNECTIONS
+        if session_id in WS_CONNECTIONS:
+            del WS_CONNECTIONS[session_id]
+        
+        # Remove from active_sessions
+        for username, sess_id in list(active_sessions.items()):
+            if sess_id == session_id:
+                del active_sessions[username]
+        
+        logger.info(f'Successfully deleted session {session_id}')
+        return JSONResponse(content={'status': 'success'})
+    except Exception as e:
+        logger.error(f'Error deleting session: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={'error': str(e)}
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 
