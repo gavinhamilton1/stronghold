@@ -150,9 +150,9 @@ class Stronghold {
     }
     
     // Update step-up container
-    const pinDisplay = document.getElementById('browser-pin');
-    if (pinDisplay) {
-      pinDisplay.parentElement.innerHTML = `
+    const pinContainer = document.querySelector('.pin-container');
+    if (pinContainer) {
+      pinContainer.innerHTML = `
         <div style="text-align: center; padding: 20px;">
           <h3 style="color: #28a745;">✓ PIN Verified</h3>
           <p>Authentication level upgraded to AAL3</p>

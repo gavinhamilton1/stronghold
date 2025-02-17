@@ -23,8 +23,11 @@
             <div class="confirmation-container">
                 <a href="#" class="cancel-link" onclick="showStep(1)">Cancel</a>
                 <h3>User Code</h3>
-                <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
-                    Generating code...
+                <div class="pin-container">
+                    <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
+                        Generating code...
+                    </div>
+                    <div id="pin-status"></div>
                 </div>
             </div>
         </div>
@@ -199,8 +202,11 @@
                     confirmationContainer.innerHTML = `
                         <a href="#" class="cancel-link" onclick="showStep(1)">Cancel</a>
                         <h3>User Code</h3>
-                        <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
-                            ${data.pin}
+                        <div class="pin-container">
+                            <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
+                                ${data.pin}
+                            </div>
+                            <div id="pin-status"></div>
                         </div>
                     `;
                     console.log(`Browser: Displaying PIN: ${data.pin}`);
