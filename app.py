@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, WebSocket
-from fastapi.responses import JSONResponse, Response, HTMLResponse, RedirectResponse
+from fastapi.responses import JSONResponse, Response, HTMLResponse, RedirectResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -747,6 +747,10 @@ async def payment(request: Request):
         "request": request,
         "show_footer": False
     })
+
+@app.get("/manifest.json")
+async def manifest():
+    return FileResponse("v2/static/manifest.json")
 
 if __name__ == "__main__":
     import uvicorn

@@ -3,6 +3,20 @@
 {% block title %}J.P. Morgan Digital{% endblock %}
 {% block extra_head %}
     <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="JPM Digital">
+    <meta name="apple-mobile-web-app-title" content="JPM Digital">
+    <meta name="theme-color" content="#f0f1f1">
+    <meta name="msapplication-navbutton-color" content="#f0f1f1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="msapplication-starturl" content="/mobile">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="192x192" href="/static/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/static/icons/icon-512x512.png">
 {% endblock %}
 
 {% block body_class %}mobile-page{% endblock %}
@@ -101,6 +115,19 @@
 {% endblock %}
 
 {% block scripts %}
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
     <script>
         // Check for debug parameter
         const urlParams = new URLSearchParams(window.location.search);
