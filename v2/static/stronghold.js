@@ -178,7 +178,19 @@ class Stronghold {
       console.log('Starting step-up process...');
       
       // Get session ID and initialize connection
-      const sessionResponse = await fetch('/start-session');
+      const username = document.getElementById('username-input').value.trim();
+      const sessionResponse = await fetch('/start-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username })
+      });
+      
+      if (!sessionResponse.ok) {
+        throw new Error('Failed to start session: ' + sessionResponse.statusText);
+      }
+      
       const sessionData = await sessionResponse.json();
       this.sessionId = sessionData.session_id;
       console.log('Got session ID:', this.sessionId);
@@ -191,10 +203,19 @@ class Stronghold {
         this.ws = new WebSocket(wsUrl);
         this.ws.onmessage = (event) => {
           console.log('WebSocket message received:', event.data);
-          const data = JSON.parse(event.data);
+          let data;
+          try {
+            data = JSON.parse(event.data);
+          } catch (e) {
+            console.error('Failed to parse WebSocket message:', e);
+            return;
+          }
+          
           if (data.type === 'auth_complete') {
+            console.log('Received auth_complete via WebSocket');
             this.handleAuthComplete();
           } else if (data.type === 'auth_failed') {
+            console.log('Received auth_failed via WebSocket');
             this.handleAuthFailed();
           }
         };
@@ -212,7 +233,16 @@ class Stronghold {
       }
 
       // Generate new PIN
-      const response = await fetch('/get-current-pin');
+      const response = await fetch('/get-current-pin', {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get PIN: ' + response.statusText);
+      }
+      
       const data = await response.json();
       
       if (data.pin) {
@@ -233,6 +263,23 @@ class Stronghold {
     } catch (error) {
       console.error('Error starting step-up:', error);
       showStatus('Error starting step-up process', 'error');
+      // Show error in PIN container
+      const pinContainer = document.getElementById('browser-pin');
+      if (pinContainer) {
+        pinContainer.innerHTML = `
+          <div style="text-align: center; padding: 20px;">
+            <h3 style="color: #dc3545;">Error</h3>
+            <p>${error.message}</p>
+            <button onclick="stronghold.startStepUp()" 
+                    style="margin-top: 20px; padding: 10px 20px; 
+                           background: #007bff; color: white; 
+                           border: none; border-radius: 4px; 
+                           cursor: pointer;">
+              Try Again
+            </button>
+          </div>
+        `;
+      }
     }
   }
 
