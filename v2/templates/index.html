@@ -95,6 +95,25 @@
                 pinContainer.innerHTML = 'Generating code...';
             }
             
+            // Reset Stronghold instance
+            if (stronghold) {
+                // Close existing WebSocket
+                if (stronghold.ws) {
+                    stronghold.ws.close();
+                    stronghold.ws = null;
+                }
+                // Clear polling interval
+                if (stronghold.pollingInterval) {
+                    clearInterval(stronghold.pollingInterval);
+                    stronghold.pollingInterval = null;
+                }
+                // Reset session ID
+                stronghold.sessionId = null;
+            }
+            
+            // Create new Stronghold instance
+            window.stronghold = new Stronghold();
+            
             // Show login step
             showStep(1);
         }
