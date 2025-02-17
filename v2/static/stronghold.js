@@ -291,12 +291,12 @@ class Stronghold {
         <div style="text-align: center; padding: 20px;">
           <h3 style="color: #dc3545;">✕ Incorrect PIN</h3>
           <p>Authentication failed. Please try again.</p>
-          <button onclick="stronghold.startStepUp()" 
+          <button onclick="showStep(1)" 
                   style="margin-top: 20px; padding: 10px 20px; 
                          background: #007bff; color: white; 
                          border: none; border-radius: 4px; 
                          cursor: pointer;">
-            Try Again
+            Return to Login
           </button>
         </div>
       `;
@@ -304,6 +304,10 @@ class Stronghold {
     // Clear any existing polling interval
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
+    }
+    // Close WebSocket connection
+    if (this.ws) {
+      this.ws.close();
     }
   }
 
