@@ -740,6 +740,14 @@ async def sample(request: Request):
         "show_footer": False
     })
 
+@app.get("/payment", response_class=HTMLResponse)
+async def payment(request: Request):
+    """Serve payment page"""
+    return templates.TemplateResponse("payment.html", {
+        "request": request,
+        "show_footer": False
+    })
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 

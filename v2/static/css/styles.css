@@ -172,6 +172,16 @@ body {
     padding: 20px;
 }
 
+.confirmation-container h3{
+    margin-bottom: 0;
+}
+
+.confirmation-container h2{
+    margin-top: 0;
+}
+
+
+
 /* Email pill styles */
 .email-pill {
     background: #f5f6f7;
@@ -392,4 +402,220 @@ body {
 
 #auto-auth-container {
     width: 100%;
+}
+
+/* Payment form styles */
+.payment-form {
+    display: flex;
+    gap: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.payment-section {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* First payment section (left side) */
+.payment-section:first-child {
+    flex: 0.55;  /* 45% narrower than the other section */
+    min-width: 350px;
+}
+
+/* Second payment section (right side) */
+.payment-section:last-child {
+    flex: 1;
+    min-width: 600px;
+}
+
+.payment-section h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.recipient-details {
+    margin-top: 30px;
+}
+
+.recipient-details h3 {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.detail-group {
+    margin-bottom: 15px;
+}
+
+.detail-group label {
+    display: block;
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.detail-value {
+    color: #333;
+    font-size: 16px;
+}
+
+.amount-group {
+    display: flex;
+    gap: 10px;
+}
+
+.amount-group .form-control {
+    flex: 1;
+}
+
+.currency-select {
+    width: 100px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.button-group {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.save-button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: #0066cc;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.payment-button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    background: #0066cc;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.payment-button:hover {
+    background: #0052a3;
+}
+
+/* Override container max-width for payment page */
+.container.payment-container {
+    max-width: none;
+    padding: 0;
+    background-color: #f0f1f1;
+    min-height: 100vh;
+}
+
+/* Payment header styles */
+.payment-header {
+    padding: 30px 30px 0 30px;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.payment-logo {
+    width: 200px;
+    margin-bottom: 10px;
+}
+
+.payment-title {
+    font-size: 14pt;
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: normal;
+    color: #333;
+    margin: 10px 0;
+}
+
+.user-info {
+    color: #666;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+/* Overlay styles */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.overlay.active {
+    display: flex;
+}
+
+.overlay-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    position: relative;
+    width: 400px;
+    height: 300px;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    line-height: 1;
+    opacity: 0.8;
+    z-index: 1;
+}
+
+.close-button:hover {
+    opacity: 1;
+    color: #333;
+}
+
+.overlay-iframe {
+    width: 100%;
+    height: 280px;
+    border: none;
+    margin-top: 20px;
 } 

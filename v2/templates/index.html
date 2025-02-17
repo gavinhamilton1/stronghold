@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Stronghold Step-up Demo{% endblock %}
+{% block title %}J.P. Morgan Digital{% endblock %}
 
 {% block extra_head %}
     <link rel="stylesheet" href="/static/css/styles.css">
@@ -18,7 +18,8 @@
         <div class="step" id="step2">
             <div class="confirmation-container">
                 <a href="#" class="cancel-link" onclick="showStep(1)">Cancel</a>
-                <h3>User Code</h3>
+                <h3>One-Time Code</h3>
+                <h2>Please open the J.P. Morgan Digital Mobile App and select the following code:</h2>
                 <div class="pin-container">
                     <div id="browser-pin"">
                         Generating code...
@@ -89,7 +90,8 @@
                 const confirmationContainer = document.querySelector('.confirmation-container');
                 if (confirmationContainer) {
                     confirmationContainer.innerHTML = `
-                        <h3>User Code</h3>
+                <h3>One-Time Code</h3>
+                <p>Please open the J.P. Morgan Digital Mobile App and select the following code:</p>
                         <div class="pin-container">
                             <div id="browser-pin">
                                 ${data.pin}
