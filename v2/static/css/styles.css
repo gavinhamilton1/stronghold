@@ -406,6 +406,10 @@ body {
 
 /* Payment form styles */
 .payment-form {
+    width: 100%;
+}
+
+.payment-sections-wrapper {
     display: flex;
     gap: 30px;
     max-width: 1400px;
@@ -618,4 +622,39 @@ body {
     height: 280px;
     border: none;
     margin-top: 20px;
+}
+
+/* Payment success styles */
+.payment-success {
+    background: white;
+    padding: 60px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    max-width: 500px;
+    margin: 40px auto;
+}
+
+.payment-success .success-icon {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #28a745;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 30px auto;
+    color: #28a745;
+    font-size: 30px;
+}
+
+.payment-success .success-title {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.payment-success .success-details {
+    color: #666;
+    font-size: 16px;
 } 
