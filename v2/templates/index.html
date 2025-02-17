@@ -390,7 +390,6 @@
                 
                 // Show the PIN step after successful session start
                 showStep(2);
-                showStatus('Session started successfully', 'success');
             } catch (error) {
                 console.error('Browser: Session error:', error);
                 showStatus('Error starting session: ' + error.message, 'error');

@@ -84,19 +84,20 @@ class Stronghold {
       
       this.ws.onmessage = (event) => {
         console.log('WebSocket message received:', event.data);
-        const data = JSON.parse(event.data);
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch (e) {
+          console.error('Failed to parse WebSocket message:', e);
+          return;
+        }
+        
         if (data.type === 'auth_complete') {
           console.log('Received auth_complete via WebSocket');
           this.handleAuthComplete();
-          // Update the PIN display
-          if (this.containerElement) {
-            this.containerElement.innerHTML = `
-              <div style="text-align: center; padding: 20px;">
-                <h3 style="color: #28a745;">✓ PIN Verified</h3>
-                <p>Authentication level upgraded to AAL3</p>
-              </div>
-            `;
-          }
+        } else if (data.type === 'auth_failed') {
+          console.log('Received auth_failed via WebSocket');
+          this.handleAuthFailed();
         }
       };
       
@@ -237,7 +238,7 @@ class Stronghold {
 
   handleAuthFailed() {
     console.log('Handling auth failed event');
-    const pinContainer = document.getElementById('browser-pin');
+    const pinContainer = document.getElementById('browser-pin').parentElement;
     if (pinContainer) {
       pinContainer.innerHTML = `
         <div style="text-align: center; padding: 20px;">
@@ -252,6 +253,10 @@ class Stronghold {
           </button>
         </div>
       `;
+    }
+    // Clear any existing polling interval
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
     }
   }
 
