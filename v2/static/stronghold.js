@@ -153,7 +153,7 @@ class Stronghold {
     const pinContainer = document.querySelector('.pin-container');
     if (pinContainer) {
       pinContainer.innerHTML = `
-        <div style="text-align: center; padding: 20px;">
+        <div style="text-align: center;">
           <h3 style="color: #28a745;">✓ PIN Verified</h3>
         </div>
       `;
@@ -287,9 +287,8 @@ class Stronghold {
     const pinContainer = document.querySelector('.pin-container');
     if (pinContainer) {
       pinContainer.innerHTML = `
-        <div style="text-align: center; padding: 20px;">
+        <div style="text-align: center;">
           <h3 style="color: #dc3545;">✕ Incorrect PIN</h3>
-          <p>Authentication failed. Please try again.</p>
           <button onclick="resetAndShowLogin()" 
                   style="margin-top: 20px; padding: 10px 20px; 
                          background: #007bff; color: white; 
