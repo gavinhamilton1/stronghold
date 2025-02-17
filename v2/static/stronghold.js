@@ -284,7 +284,7 @@ class Stronghold {
 
   handleAuthFailed() {
     console.log('Handling auth failed event');
-    const pinContainer = document.getElementById('browser-pin').parentElement;
+    const pinContainer = document.querySelector('.pin-container');
     if (pinContainer) {
       pinContainer.innerHTML = `
         <div style="text-align: center; padding: 20px;">

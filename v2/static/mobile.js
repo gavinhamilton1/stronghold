@@ -408,6 +408,66 @@ class MobileStepUp {
         // Show footer only on login step
         document.body.classList.toggle('show-footer', stepNumber === 1);
     }
+
+    async showConfirmation(username) {
+        document.getElementById('confirmation-email').textContent = username;
+        const confirmationContent = document.getElementById('confirmation-content');
+        
+        try {
+            // Check for active session
+            const response = await fetch(`/join-session?username=${encodeURIComponent(username)}`);
+            
+            if (response.ok) {
+                // Session exists, show yes/no options
+                confirmationContent.innerHTML = `
+                    <div class="auth-question">
+                        Are you trying to authenticate on another device?
+                    </div>
+                    
+                    <div class="choice-buttons">
+                        <button class="choice-button no" onclick="mobileStepUp.showStep(1)">
+                            ✕ NO
+                        </button>
+                        <button class="choice-button yes" onclick="mobileStepUp.loadPinOptions()">
+                            ✓ YES
+                        </button>
+                    </div>
+                `;
+            } else {
+                // No active session
+                confirmationContent.innerHTML = `
+                    <div style="text-align: center; padding: 20px;">
+                        <h3 style="color: #dc3545;">No Active Session</h3>
+                        <p>There is no authentication request for this username.</p>
+                        <button onclick="mobileStepUp.showStep(1)" 
+                                style="margin-top: 20px; padding: 10px 20px; 
+                                       background: #007bff; color: white; 
+                                       border: none; border-radius: 4px; 
+                                       cursor: pointer;">
+                            Return to Login
+                        </button>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error checking session:', error);
+            confirmationContent.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h3 style="color: #dc3545;">Error</h3>
+                    <p>Failed to check authentication status. Please try again.</p>
+                    <button onclick="mobileStepUp.showStep(1)" 
+                            style="margin-top: 20px; padding: 10px 20px; 
+                                   background: #007bff; color: white; 
+                                   border: none; border-radius: 4px; 
+                                   cursor: pointer;">
+                        Return to Login
+                    </button>
+                </div>
+            `;
+        }
+
+        this.showStep(2);
+    }
 }
 
 // Initialize after DOM is loaded
