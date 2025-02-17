@@ -88,6 +88,17 @@
             }
         });
 
+        function resetAndShowLogin() {
+            // Reset the PIN display
+            const pinContainer = document.getElementById('browser-pin');
+            if (pinContainer) {
+                pinContainer.innerHTML = 'Generating code...';
+            }
+            
+            // Show login step
+            showStep(1);
+        }
+
         function showStep(stepNumber) {
             // Hide all steps
             document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
