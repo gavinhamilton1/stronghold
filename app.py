@@ -26,14 +26,23 @@ app.mount("/static", StaticFiles(directory="v2/static", html=True), name="static
 # Setup templates
 templates = Jinja2Templates(directory="v2/templates")
 
+# Define allowed origins
+ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "https://stronghold-test.onrender.com",
+    "http://localhost:3000"  # Add any other development/production domains
+]
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify allowed domains
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
+    allow_origin_regex=".*"  # Allow all origins for iframe support
 )
 
 # Store active SSE connections

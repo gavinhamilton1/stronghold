@@ -20,7 +20,7 @@
                 <a href="#" class="cancel-link" onclick="showStep(1)">Cancel</a>
                 <h3>User Code</h3>
                 <div class="pin-container">
-                    <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
+                    <div id="browser-pin"">
                         Generating code...
                     </div>
                     <div id="pin-status"></div>
@@ -36,87 +36,7 @@
     <script src="/static/stronghold.js"></script>
     <script src="/static/components/login-form.js"></script>
     <script>
-        const statusDiv = document.getElementById('status');
-        
-        function showStatus(message, type) {
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-        }
-    </script>
-
-    <script>
-        // Initialize login form
-        const loginForm = new LoginForm('login-form-container', {
-            onContinue: ({ username, remember }) => {
-                // Proceed directly to code generation
-                proceedToCode();
-            }
-        });
-    </script>
-
-    <script>
-        // Cookie handling functions
-        function setCookie(name, value, days) {
-            const expires = new Date();
-            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-            document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
-        }
-
-        function getCookie(name) {
-            const nameEQ = name + "=";
-            const ca = document.cookie.split(';');
-            for(let i = 0; i < ca.length; i++) {
-                let c = ca[i];
-                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-            }
-            return null;
-        }
-
-        // Initialize Stronghold instance
-        const stronghold = new Stronghold();
-        let currentSessionId = null;
-        let currentClientId = null;
-
-        // Check for saved username on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const savedUsername = getCookie('username');
-            if (savedUsername) {
-                document.getElementById('username-input').value = savedUsername;
-                document.getElementById('remember-username').checked = true;
-            }
-        });
-
-        function resetAndShowLogin() {
-            // Reset the PIN display
-            const pinContainer = document.getElementById('browser-pin');
-            if (pinContainer) {
-                pinContainer.innerHTML = 'Generating code...';
-            }
-            
-            // Reset Stronghold instance
-            if (stronghold) {
-                // Close existing WebSocket
-                if (stronghold.ws) {
-                    stronghold.ws.close();
-                    stronghold.ws = null;
-                }
-                // Clear polling interval
-                if (stronghold.pollingInterval) {
-                    clearInterval(stronghold.pollingInterval);
-                    stronghold.pollingInterval = null;
-                }
-                // Reset session ID
-                stronghold.sessionId = null;
-            }
-            
-            // Create new Stronghold instance
-            window.stronghold = new Stronghold();
-            
-            // Show login step
-            showStep(1);
-        }
-
+        // Define functions first
         function showStep(stepNumber) {
             // Hide all steps
             document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
@@ -124,31 +44,7 @@
             document.getElementById(`step${stepNumber}`).classList.add('active');
         }
 
-        async function startSession() {
-            const usernameInput = document.getElementById('username-input');
-            const username = usernameInput.value.trim();
-            const rememberUsername = document.getElementById('remember-username').checked;
-            
-            if (!username) {
-                showStatus('Please enter a username', 'error');
-                return;
-            }
-            
-            // Handle remember username
-            if (rememberUsername) {
-                setCookie('username', username, 30);
-            } else {
-                setCookie('username', '', -1);
-            }
-            
-            // Update confirmation email display
-            document.getElementById('confirmation-email').textContent = username;
-            
-            // Show confirmation step
-            showStep(2);
-        }
-
-        async function proceedToCode() {
+        async function proceedToCode(username) {
             try {
                 // Reset any existing session
                 if (currentSessionId) {
@@ -167,7 +63,6 @@
                     currentSessionId = null;
                 }
                 
-                const username = document.getElementById('username-input').value.trim();
                 const requestData = { username };
                 console.log('Browser: Sending start-session request to server');
                 console.log('Browser: API Call - POST /start-session', requestData);
@@ -194,10 +89,9 @@
                 const confirmationContainer = document.querySelector('.confirmation-container');
                 if (confirmationContainer) {
                     confirmationContainer.innerHTML = `
-                        <a href="#" class="cancel-link" onclick="showStep(1)">Cancel</a>
                         <h3>User Code</h3>
                         <div class="pin-container">
-                            <div id="browser-pin" style="font-size: 24px; font-weight: bold; margin: 20px 0; text-align: center;">
+                            <div id="browser-pin">
                                 ${data.pin}
                             </div>
                             <div id="pin-status"></div>
@@ -212,6 +106,72 @@
                 console.error('Browser: Session error:', error);
                 showStatus('Error starting session: ' + error.message, 'error');
             }
+        }
+
+        const statusDiv = document.getElementById('status');
+        
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Initialize Stronghold instance
+        const stronghold = new Stronghold();
+        let currentSessionId = null;
+        let currentClientId = null;
+
+        // Check for username in URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoUsername = urlParams.get('username');
+        
+        // If username provided, auto-start the session
+        if (autoUsername) {
+            // Hide login form, show PIN step immediately
+            showStep(2);
+            // Start session with provided username
+            proceedToCode(autoUsername);
+        }
+
+        // Only initialize login form if no username provided and we're not in auto mode
+        if (!autoUsername) {
+            const loginForm = new LoginForm('login-form-container', {
+                onContinue: ({ username, remember }) => {
+                    proceedToCode(username);
+                }
+            });
+
+            // Only check for saved username if we're showing the login form
+            document.addEventListener('DOMContentLoaded', function() {
+                const savedUsername = getCookie('username');
+                const usernameInput = document.getElementById('username-input');
+                if (savedUsername && usernameInput) {
+                    usernameInput.value = savedUsername;
+                    const rememberCheckbox = document.getElementById('remember-username');
+                    if (rememberCheckbox) {
+                        rememberCheckbox.checked = true;
+                    }
+                }
+            });
+        }
+    </script>
+
+    <script>
+        // Cookie handling functions
+        function setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
         }
     </script>
 

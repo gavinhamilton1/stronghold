@@ -128,6 +128,7 @@ class StrongholdAuth {
     async startSession(username) {
         try {
             console.log('Browser: Sending start-session request to server');
+            console.log('Browser: Using baseUrl:', this.options.baseUrl);
             const response = await fetch(`${this.options.baseUrl}/start-session`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -137,8 +138,9 @@ class StrongholdAuth {
             console.log('Browser: API Call - POST /start-session', { username });
             
             if (!response.ok) {
-                console.error(`Browser: Server returned status: ${response.status}`);
-                throw new Error('Failed to start session');
+                const errorText = await response.text();
+                console.error(`Browser: Server error (${response.status}):`, errorText);
+                throw new Error(`Server returned ${response.status}: ${errorText}`);
             }
             
             const data = await response.json();
@@ -195,7 +197,11 @@ class StrongholdAuth {
                 this.options.onAuthFailed();
             };
         } catch (error) {
-            console.error('Browser: Session error:', error);
+            console.error('Browser: Session error details:', {
+                message: error.message,
+                stack: error.stack,
+                baseUrl: this.options.baseUrl
+            });
             this.showStatus('Error starting session: ' + error.message, 'error');
         }
     }
