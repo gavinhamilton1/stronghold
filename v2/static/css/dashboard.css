@@ -14,6 +14,8 @@
     height: 100vh;
     left: 0;
     top: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .main-container {
@@ -54,7 +56,7 @@
 /* Dashboard Header */
 .dashboard-header-section {
     background: linear-gradient(
-        rgba(0, 32, 96, 0.5),
+        rgba(14, 28, 56, 0.5),
         rgba(0, 32, 96, 0.5)
     ), url('/static/images/HeaderBackground.png') no-repeat center center;
     background-size: cover;
@@ -184,11 +186,11 @@
 }
 
 .change.positive {
-    color: #28a745;
+    color: white;
 }
 
 .change.negative {
-    color: #dc3545;
+    color: white;
 }
 
 /* Transactions Table */
@@ -233,4 +235,17 @@
 
 .transactions-table .negative {
     color: #dc3545;
+}
+
+.menu-spacer {
+    flex: 1;
+}
+
+.logout-item {
+    border-top: 1px solid #eee;
+    color: #dc3545 !important;
+}
+
+.logout-item:hover {
+    background: #fff5f5;
 } 
