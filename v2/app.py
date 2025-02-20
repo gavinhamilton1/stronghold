@@ -12,12 +12,11 @@ def dashboard():
 
 @app.route('/payment')
 def payment():
-    return render_template('payment.html')
+    return render_template('pincode.html')
 
 @app.route('/pincode')
 def pincode():
-    username = request.args.get('username', '')
-    return render_template('pincode.html', username=username)
+    return render_template('pincode.html')
 
 if __name__ == '__main__':
     app.run(debug=True) 
