@@ -65,6 +65,17 @@ body {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
+/* Center login container only on mobile page */
+.mobile-page .login-container {
+    margin: 20px auto;
+    text-align: center;
+}
+
+/* Mobile page background */
+.mobile-page {
+    background-color: #f0f1f1;
+}
+
 .login-title {
     font-size: 18px;
     margin-bottom: 16px;
@@ -835,4 +846,17 @@ html, body {
 .logo-white {
     width: 100px;
     height: auto;
+}
+
+/* Digital title style */
+.digital-title {
+    margin: 40px 0;
+}
+
+/* Add this near the login section styles */
+.login-page-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 40px 20px;
 } 

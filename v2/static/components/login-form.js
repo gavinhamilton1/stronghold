@@ -3,6 +3,7 @@ class LoginForm {
         document.addEventListener('DOMContentLoaded', () => {
             this.container = document.getElementById(containerId);
             this.onContinue = options.onContinue || (() => {});
+            this.isMobilePage = document.body.classList.contains('mobile-page');
             this.render();
             this.attachEvents();
         });
@@ -54,8 +55,17 @@ class LoginForm {
                     this.setCookie('username', '', -1);
                 }
 
-                // Redirect to payment page
-                window.location.href = '/payment';
+                if (this.isMobilePage) {
+                    // For mobile page, trigger biometrics
+                    mobileStepUp.authenticateWithBiometrics().then(success => {
+                        if (success) {
+                            mobileStepUp.showConfirmation(username);
+                        }
+                    });
+                } else {
+                    // For other pages, redirect to dashboard
+                    window.location.href = '/dashboard';
+                }
             }
         });
     }
