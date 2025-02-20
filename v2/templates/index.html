@@ -333,7 +333,7 @@
         function handleContinue() {
             const username = document.getElementById('username-input').value.trim();
             if (username) {
-                window.location.href = '/dashboard';
+                window.location.href = `/dashboard?username=${encodeURIComponent(username)}`;
             }
         }
     </script>
