@@ -1,9 +1,11 @@
 class LoginForm {
     constructor(containerId, options = {}) {
-        this.container = document.getElementById(containerId);
-        this.onContinue = options.onContinue || (() => {});
-        this.render();
-        this.attachEvents();
+        document.addEventListener('DOMContentLoaded', () => {
+            this.container = document.getElementById(containerId);
+            this.onContinue = options.onContinue || (() => {});
+            this.render();
+            this.attachEvents();
+        });
     }
 
     render() {
@@ -44,20 +46,17 @@ class LoginForm {
         // Handle continue button click
         continueButton.addEventListener('click', () => {
             const username = usernameInput.value.trim();
-            if (!username) return;
+            if (username) {
+                // Handle remember me
+                if (rememberCheckbox.checked) {
+                    this.setCookie('username', username, 30);
+                } else {
+                    this.setCookie('username', '', -1);
+                }
 
-            // Handle remember me
-            if (rememberCheckbox.checked) {
-                this.setCookie('username', username, 30);
-            } else {
-                this.setCookie('username', '', -1);
+                // Redirect to payment page
+                window.location.href = '/payment';
             }
-
-            // Call the continue callback with the form data
-            this.onContinue({
-                username,
-                remember: rememberCheckbox.checked
-            });
         });
     }
 

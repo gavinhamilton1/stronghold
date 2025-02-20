@@ -1,0 +1,125 @@
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+    background: #f5f6f7;
+}
+
+/* Side Menu Styles */
+.side-menu {
+    width: 250px;
+    background: white;
+    padding: 20px 0;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+.menu-item {
+    padding: 15px 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    color: #333;
+}
+
+.menu-item:hover {
+    background: #f5f6f7;
+}
+
+.menu-item.active {
+    background: #e5e9ec;
+    color: #2e627b;
+}
+
+.menu-item i {
+    width: 20px;
+}
+
+/* Main Content Styles */
+.dashboard-content {
+    flex: 1;
+    padding: 30px;
+}
+
+/* Balance Cards */
+.balance-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.balance-card {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.balance-card h3 {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.balance-card .amount {
+    font-size: 28px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.balance-card .change {
+    font-size: 13px;
+}
+
+.change.positive {
+    color: #28a745;
+}
+
+.change.negative {
+    color: #dc3545;
+}
+
+/* Transactions Table */
+.transactions-section {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.transactions-section h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.transactions-table th,
+.transactions-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.transactions-table th {
+    font-weight: 600;
+    color: #666;
+    font-size: 13px;
+}
+
+.transactions-table td {
+    color: #333;
+    font-size: 14px;
+}
+
+.transactions-table .positive {
+    color: #28a745;
+}
+
+.transactions-table .negative {
+    color: #dc3545;
+} 

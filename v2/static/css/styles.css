@@ -1,22 +1,175 @@
-/* Base styles */
+/* Reset base styles */
 *, *:before, *:after {
     box-sizing: border-box;
 }
 
-html, body {
+body {
     margin: 0;
     padding: 0;
+    font-family: 'Open Sans', sans-serif;
+    background: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* Hero section */
+.hero-section {
+    position: relative;
+    display: flex;
+    justify-content: center;
     width: 100%;
 }
 
-body {
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: flex-start;
-    min-height: 100vh;
+.hero-container {
     width: 100%;
-    margin: 0;
-    padding: 0;
+    max-width: 1160px;
+    padding: 0px 60px 40px 60px;
+    position: relative;
+}
+
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
+                url('/static/images/hero-background.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.hero-wrapper {
+    position: relative;
+    display: flex;
+    width: 100%;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 20px 40px;
+    width: 100%;
+    max-width: 1160px;}
+
+/* Login section */
+.login-section {
+    flex: 0 0 320px;
+}
+
+.login-container {
+    background: white;
+    border-radius: 2px;
+    padding: 24px;
+    margin-top: 5px;
+    width: 320px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.login-title {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: #333;
+}
+
+.input-label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+.username-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #2e627b;
+    border-radius: 2px;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.help-link {
+    margin-top: 16px;
+    text-align: center;
+}
+
+.help-link a {
+    color: #2e627b;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+/* Hero content */
+.hero-content {
+    color: white;
+    padding-top: 120px;
+    margin-left: 80px;
+}
+
+.hero-content h1 {
+    font-size: 16pt;
+    font-weight: normal;
+    margin-bottom: 8px;
+}
+
+.hero-subtitle {
+    font-size: 12pt;
+    font-weight: normal;
+    margin: 0px;
+}
+
+/* Content cards */
+.content-cards {
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    padding: 40px 60px 40px 60px;
+    width: 100%;
+    max-width: 1160px;
+    margin: 0 auto;
+}
+
+.card {
+    flex: 1;
+    max-width: 280px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.card img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e5e5e5;
+}
+
+.card-content {
+    padding-top: 10px;
+}
+
+.card h2 {
+    font-size: 16px;
+    margin: 0 0 5px 0;
+    min-height: 50px;
+    color: #333;
+}
+
+.card p {
+    color: #666;
+    line-height: 1.5;
+    margin: 0 0 16px 0;
+    font-size: 13px;
+}
+
+.learn-more {
+    color: #0066cc;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+/* Base styles */
+html, body {
+    width: 100%;
 }
 
 .container {
@@ -72,20 +225,10 @@ body {
 }
 
 /* Login form styles */
-.login-container {
-    background: white;
-    border-radius: 8px;
-    padding: 30px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-}
-
 .login-title {
-    font-size: 24px;
+    font-size: 15pt;
     font-weight: bold;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     text-align: left;
 }
 
@@ -98,7 +241,7 @@ body {
 
 .username-input {
     width: 100%;
-    padding: 12px;
+    padding: 6px;
     font-size: 16px;
     border: 2px solid #2e627b;
     border-radius: 4px;
@@ -115,12 +258,12 @@ body {
 
 .continue-button {
     width: 100%;
-    padding: 12px;
+    padding: 6px;
     background: #2e627b;
     color: white;
     border: none;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 11pt;
     text-transform: uppercase;
     cursor: pointer;
 }
@@ -159,29 +302,6 @@ body {
     font-size: 12px;
 }
 
-/* Confirmation styles */
-.confirmation-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-.confirmation-container h3{
-    margin-bottom: 0;
-}
-
-.confirmation-container h2{
-    margin-top: 0;
-}
-
-
-
 /* Email pill styles */
 .email-pill {
     background: #f5f6f7;
@@ -213,24 +333,10 @@ body {
     text-align: center;
 }
 
-/* Mobile-specific styles */
-.mobile-page {
-    background-color: #f0f1f1;
-}
-
-.digital-title {
-    font-size: 14pt;
-    font-family: Helvetica, Arial, sans-serif;
-    font-weight: normal;
-    color: #333;
-    text-align: center;
-    margin: 10px 10px 60px 10px;
-}
-
 /* Login styles */
 .help-link {
-    text-align: center;
-    margin-top: 20px;
+    text-align: right;
+    margin-top: 15px;
 }
 
 .help-link a {
@@ -657,4 +763,76 @@ body {
 .payment-success .success-details {
     color: #666;
     font-size: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .content-cards {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .card {
+        width: 100%;
+        max-width: 600px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        flex-direction: column;
+    }
+
+    .hero-content {
+        text-align: center;
+        padding: 40px 20px;
+    }
+}
+
+/* Site footer */
+.site-footer {
+    background: #f8f9fa;
+    padding: 20px 0;
+}
+
+.footer-links {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.footer-links a {
+    color: #020202;
+    text-decoration: underline;
+    font-size: 14px;
+}
+
+.footer-text {
+    color: #666;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: center;
+    max-width: 1400px;
+}
+
+/* Hero logo */
+.hero-logo {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 40px;
+    margin-bottom: 0px;
+}
+
+.white-bar {
+    height: 3px;
+    width: 100px;
+    background: white;
+    margin-bottom: 5px;
+}
+
+.logo-white {
+    width: 100px;
+    height: auto;
 } 
