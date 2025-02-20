@@ -752,6 +752,14 @@ async def payment(request: Request):
 async def manifest():
     return FileResponse("v2/static/manifest.json")
 
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    """Serve dashboard page"""
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "show_footer": False
+    })
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 

