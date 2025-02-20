@@ -44,7 +44,7 @@
             <span>Administration</span>
         </div>
         <div class="menu-spacer"></div>
-        <div class="menu-item logout-item" onclick="window.location.href='/'">
+        <div class="menu-item logout-item" onclick="handleLogout()">
             <i class="fas fa-sign-out-alt"></i>
             <span>Log Out</span>
         </div>
@@ -141,9 +141,10 @@
     <script src="/static/js/dashboard-data.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Get username from URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const username = urlParams.get('username');
+            // Get username from cookie
+            const username = document.cookie.split('; ')
+                .find(row => row.startsWith('username='))
+                ?.split('=')[1];
             
             if (username) {
                 // Capitalize first letter
@@ -151,5 +152,11 @@
                 document.getElementById('username-display').textContent = capitalizedUsername;
             }
         });
+
+        function handleLogout() {
+            // Clear username cookie
+            document.cookie = 'username=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            window.location.href = '/';
+        }
     </script>
 {% endblock %} 
