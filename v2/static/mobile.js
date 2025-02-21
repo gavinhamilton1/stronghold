@@ -49,8 +49,14 @@ class MobileStepUp {
             document.getElementById('pin-email').textContent = username;
             
             window.mobileDebug.log('Checking for active session');
-            window.mobileDebug.log('API Call - GET /join-session?username=' + username);
-            const response = await fetch(`/join-session?username=${encodeURIComponent(username)}`);
+            window.mobileDebug.log('API Call - POST /get-pin-options');
+            const response = await fetch('/v2/get-pin-options', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username })
+            });
             
             if (!response.ok) {
                 window.mobileDebug.error(`Server returned status: ${response.status}`);
@@ -63,14 +69,8 @@ class MobileStepUp {
             window.mobileDebug.log(`Mobile: Joined session with ID: ${this.sessionId}`);
             
             const pinOptions = document.getElementById('pin-options');
-            window.mobileDebug.log(`API Call - GET /get-pin-options?username=${encodeURIComponent(username)}`);
-            const pinOptionsResponse = await fetch(`/get-pin-options?username=${encodeURIComponent(username)}`);
-            if (!pinOptionsResponse.ok) {
-                const errorData = await pinOptionsResponse.json();
-                window.mobileDebug.error(`Server error: ${errorData.error}`);
-                throw new Error('Failed to get PIN options');
-            }
-            const { pins } = await pinOptionsResponse.json();
+            const { pins } = data;
+            
             window.mobileDebug.log('API Response: ' + JSON.stringify({ pins }));
             
             // Create buttons for each PIN
@@ -420,7 +420,7 @@ class MobileStepUp {
         
         try {
             // Check for active session
-            const response = await fetch('/get-pin-options', {
+            const response = await fetch('/v2/get-pin-options', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -529,7 +529,7 @@ function showMessage(message, type = 'info') {
 // Handle PIN options display
 async function displayPinOptions() {
     try {
-        const response = await fetch('/get-pin-options');
+        const response = await fetch('/v2/get-pin-options');
         const data = await response.json();
         
         const pinOptionsContainer = document.getElementById('pin-options');

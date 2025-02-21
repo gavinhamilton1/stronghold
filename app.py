@@ -802,7 +802,7 @@ async def payment(request: Request):
 
 @app.get("/manifest.json")
 async def manifest():
-    return FileResponse("v2/static/manifest.json")
+    return FileResponse("static/manifest.json")
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
@@ -810,6 +810,19 @@ async def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "show_footer": False
+    })
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin(request: Request):
+    """Admin page showing active sessions"""
+    logger.info("Accessing admin page")
+    logger.info(f"Active sessions: {active_sessions}")
+    logger.info(f"Session PINs: {session_pins}")
+    
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "active_sessions": active_sessions,
+        "session_pins": session_pins
     })
 
 if __name__ == "__main__":
