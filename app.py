@@ -21,10 +21,10 @@ from datetime import datetime
 app = FastAPI()
 
 # Mount static files directory
-app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+app.mount("/static", StaticFiles(directory="v2/static", html=True), name="static")
 
 # Setup templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="v2/templates")
 
 # Define allowed origins
 ALLOWED_ORIGINS = [
@@ -491,36 +491,47 @@ async def update_pin(pin_data: dict):
     return {"status": "success"}
 
 @app.get("/get-pin-options")
-async def get_pin_options(username: str):
-    """Get available PIN options for a session"""
+async def get_pin_options(request: Request, username: str = None):
+    """Get PIN options for mobile device"""
     try:
+        logger.info(f"Getting PIN options for username: {username}")
+        if not username:
+            logger.error("No username provided")
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Username is required"}
+            )
+
+        # Get session_id for this username
         session_id = active_sessions.get(username)
+        logger.info(f"Found session_id: {session_id} for username: {username}")
         if not session_id:
+            logger.error(f"No active session found for username: {username}")
             return JSONResponse(
                 status_code=404,
-                content={"error": "No active session found"}
+                content={"error": "No active session found for username"}
             )
+
+        # Get the correct PIN for this session
+        correct_pin = session_pins.get(session_id)
+        logger.info(f"Correct PIN for session: {correct_pin}")
+
+        # Generate 3 completely random PINs
+        pins = {correct_pin}  # Include the correct PIN
+        while len(pins) < 3:
+            pins.add(str(random.randint(10, 99)))
         
-        pin = session_pins.get(session_id)
-        if not pin:
-            return JSONResponse(
-                status_code=404,
-                content={"error": "No PIN found for session"}
-            )
+        # Convert to list and shuffle
+        pin_options = list(pins)
+        random.shuffle(pin_options)
         
-        # Generate some fake options including the real PIN
-        options = [str(random.randint(10, 99)) for _ in range(5)]
-        options[random.randint(0, 4)] = pin  # Replace one random option with the real PIN
-        
-        return JSONResponse(content={
-            "pins": options
-        })
-        
+        logger.info(f"Returning PIN options: {pin_options} including correct PIN: {correct_pin}")
+        return {"pins": pin_options}
     except Exception as e:
-        logger.error(f'Error getting PIN options: {str(e)}')
+        logger.error(f'Error generating PIN options: {str(e)}')
         return JSONResponse(
             status_code=500,
-            content={"error": str(e)}
+            content={"error": "Failed to generate PIN options"}
         )
 
 @app.post("/generate-pin")
