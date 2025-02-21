@@ -352,7 +352,7 @@ class MobileStepUp {
                     <h3 style="color: #28a745;">✓ Authentication Successful</h3>
                     <p>You can now close this window and return to your browser.</p>
                     <br><br>
-                    <button onclick="#" >Return to dashboard</button>
+                    <button onclick="#" class="payment-button">Return to dashboard</button>
                 </div>
             `;
             
