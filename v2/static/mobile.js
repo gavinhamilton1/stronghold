@@ -245,9 +245,8 @@ class MobileStepUp {
             const data = await response.json();
             if (data.success) {
                 mobileDebug.log('PIN verified successfully');
-                // Connect WebSocket and send auth complete
+                // First connect WebSocket, which will automatically send auth_complete
                 this.connectWebSocket();
-                this.sendAuthComplete();
                 // Show success screen
                 document.getElementById('success-email').textContent = 
                     document.getElementById('username-input').value.trim();
@@ -367,10 +366,15 @@ class MobileStepUp {
 
     connectWebSocket() {
         window.mobileDebug.log(`Setting up WebSocket for session_id: ${this.sessionId}`);
-        this.ws = new WebSocket(`wss://stronghold.onrender.com/ws/${this.sessionId}`);
+        // Use relative path and let browser handle the protocol and host
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/${this.sessionId}`;
+        this.ws = new WebSocket(wsUrl);
         
         this.ws.onopen = () => {
             window.mobileDebug.log('WebSocket connection established');
+            // Send auth complete message immediately after connection
+            this.sendAuthComplete();
             document.getElementById('input-container').style.display = 'block';
         };
         
@@ -386,17 +390,6 @@ class MobileStepUp {
 
     async sendAuthComplete() {
         try {
-            // Wait for WebSocket to be ready
-            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-                await new Promise((resolve) => {
-                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                        resolve();
-                    } else {
-                        this.ws.onopen = () => resolve();
-                    }
-                });
-            }
-
             // Send auth complete message
             console.log('Sending auth_complete message');
             this.ws.send(JSON.stringify({

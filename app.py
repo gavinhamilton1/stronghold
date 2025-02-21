@@ -268,71 +268,41 @@ async def complete_step_up(client_id: str):
 
 @app.websocket("/ws/{step_up_id}")
 async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
-    logger.info(f"⭐ WebSocket connection request for step_up_id: {step_up_id}")
     try:
         await websocket.accept()
         logger.info(f"✅ WebSocket connection accepted for step_up_id: {step_up_id}")
+        
+        # Store the connection
         WS_CONNECTIONS[step_up_id] = websocket
         
-        while True:
-            try:
-                data = await websocket.receive_json()
-                logger.info(f"📥 Received WebSocket message for {step_up_id}: {data}")
+        try:
+            while True:
+                message = await websocket.receive_json()
+                logger.info(f"📩 Received message: {message}")
                 
-                # Get the client ID from the mapping for all message types
-                client_id = STEP_UP_TO_CLIENT.get(step_up_id)
-                logger.info(f"🔍 Looking up client_id for step_up_id {step_up_id}: found {client_id}")
-                if not client_id:
-                    logger.error(f"❌ No client_id found for step_up_id: {step_up_id}")
-                    continue
-
-                if data["type"] == "auth_complete":
-                    # Add to polling queue
-                    logger.info(f"🔐 Adding auth complete event to polling queue for client: {client_id}")
-                    POLLING_EVENTS[client_id].append({
-                        "type": "auth_complete",
-                        "data": None
-                    })
-                    
-                    # Also try SSE if available
-                    if client_id in CONNECTIONS:
-                        logger.info(f"🔐 Sending auth complete event via SSE for client: {client_id}")
-                        await CONNECTIONS[client_id].put({
-                            "event": "auth_complete",
-                            "data": "{}"
-                        })
-
-                elif data["type"] == "message":
-                    message_content = data.get('content', '')
-                    logger.info(f"💬 Processing message: {message_content} for client: {client_id}")
-                    
-                    # Add to polling queue
-                    logger.info(f"➡️ Adding message to polling queue for client: {client_id}")
-                    POLLING_EVENTS[client_id].append({
-                        "type": "mobile_message",
-                        "data": message_content
-                    })
-                    logger.info(f"📊 Current polling events for {client_id}: {list(POLLING_EVENTS[client_id])}")
-                    
-                    # Send via SSE if available
-                    if client_id in CONNECTIONS:
-                        logger.info(f"➡️ Sending message via SSE for client: {client_id}")
-                        await CONNECTIONS[client_id].put({
-                            "event": "mobile_message",
-                            "data": message_content
-                        })
-                    else:
-                        logger.info(f"ℹ️ No SSE connection for client: {client_id}, using polling only")
-                    
-            except Exception as e:
-                logger.error(f"❌ Error processing WebSocket message: {e}")
-                break
+                if message.get('type') == 'auth_complete':
+                    # Broadcast auth_complete event to all connected clients for this session
+                    for ws in WS_CONNECTIONS.values():
+                        try:
+                            await ws.send_json({
+                                "type": "auth_complete",
+                                "session_id": step_up_id
+                            })
+                        except Exception as e:
+                            logger.error(f"Error sending auth_complete: {e}")
                 
+        except WebSocketDisconnect:
+            logger.info(f"👋 WebSocket connection closed for step_up_id: {step_up_id}")
+            if step_up_id in WS_CONNECTIONS:
+                del WS_CONNECTIONS[step_up_id]
+        except Exception as e:
+            logger.error(f"❌ Error processing WebSocket message: {str(e)}")
+            # Don't close the connection on error
+            pass
+            
     except Exception as e:
-        logger.error(f"❌ WebSocket connection error: {e}")
-    finally:
-        WS_CONNECTIONS.pop(step_up_id, None)
-        logger.info(f"👋 WebSocket connection closed for step_up_id: {step_up_id}")
+        logger.error(f"❌ Error in WebSocket connection: {e}")
+        raise
 
 @app.route('/register-push', methods=['POST'])
 def register_push():

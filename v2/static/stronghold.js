@@ -467,14 +467,27 @@ class Stronghold {
       this.handleMobileMessage(event.data);
     });
 
-    // Add event listener for auth_complete event
+    // Listen for auth complete
     this.eventSource.addEventListener('auth_complete', (event) => {
-      console.log('Received auth_complete event with data:', event.data);
-      try {
-        this.handleAuthComplete();
-      } catch (error) {
-        console.error('Error processing auth_complete event:', error);
-      }
+        console.log('Received auth complete event');
+        // Update AAL level
+        const authLevelDiv = document.getElementById('auth-level');
+        const downgradeButton = document.getElementById('downgrade-button');
+        const qrContainer = document.getElementById('qr-container');
+        
+        // Remove QR code container if it exists
+        if (qrContainer) {
+            qrContainer.remove();
+        }
+        
+        authLevelDiv.textContent = 'Auth Level: AAL3';
+        authLevelDiv.style.color = '#fd7e14';
+        downgradeButton.style.display = 'block';
+        localStorage.setItem('authLevel', 'AAL3');
+        this.aalUpdated = true;
+
+        // Start 20-second timer
+        this.startAALTimer(20);
     });
   }
 
