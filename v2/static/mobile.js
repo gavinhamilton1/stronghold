@@ -205,73 +205,33 @@ class MobileStepUp {
         return outputArray;
     }
 
-    async handlePinSelection(selectedPin) {
+    async handlePinSelection(pin) {
         try {
-            window.mobileDebug.log(`Submitting PIN to server`);
-            if (!this.sessionId) {
-                throw new Error('No session ID available');
-            }
-
-            // Disable PIN buttons during verification
-            document.querySelectorAll('.pin-option').forEach(button => {
-                button.disabled = true;
-                button.style.opacity = '0.5';
-            });
+            const urlParams = new URLSearchParams(window.location.search);
+            const username = urlParams.get('username');
             
-            // Verify the pin
-            const response = await fetch('/verify-pin-selection', {
+            // Send selected PIN to server for verification
+            const verifyResponse = await fetch('/verify-pin-selection', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    pin: selectedPin,
-                    session_id: this.sessionId
+                body: JSON.stringify({
+                    pin: pin,
+                    username: username
                 })
             });
             
-            if (!response.ok) {
-                const errorData = await response.json();
-                window.mobileDebug.error('PIN verification failed: ' + errorData.error);
-                // Show failure screen
-                document.getElementById('success-email').textContent = 
-                    document.getElementById('username-input').value.trim();
-                document.getElementById('success-state').style.display = 'none';
-                document.getElementById('failure-state').style.display = 'block';
-                this.showStep(4);
-                return;
-            }
-            
-            const data = await response.json();
-            if (data.success) {
-                mobileDebug.log('PIN verified successfully');
-                // Notify server of successful auth
-                await fetch(`/auth-complete/${this.sessionId}`, {
-                    method: 'POST'
-                });
-                // Show success screen
-                document.getElementById('success-email').textContent = 
-                    document.getElementById('username-input').value.trim();
-                document.getElementById('success-state').style.display = 'block';
-                document.getElementById('failure-state').style.display = 'none';
-                this.showStep(4);
+            // Server will send success/failure and handle notifications
+            const result = await verifyResponse.json();
+            if (result.success) {
+                showSuccessMessage();
             } else {
-                mobileDebug.error('Incorrect PIN selected');
-                // Show failure screen
-                document.getElementById('success-email').textContent = 
-                    document.getElementById('username-input').value.trim();
-                document.getElementById('success-state').style.display = 'none';
-                document.getElementById('failure-state').style.display = 'block';
-                this.showStep(4);
+                showErrorMessage();
             }
         } catch (error) {
-            window.mobileDebug.error('Network error: ' + error.message);
-            // Show failure screen for network error
-            document.getElementById('success-email').textContent = 
-                document.getElementById('username-input').value.trim();
-            document.getElementById('success-state').style.display = 'none';
-            document.getElementById('failure-state').style.display = 'block';
-            this.showStep(4);
+            console.error('Error handling PIN selection:', error);
+            showErrorMessage();
         }
     }
 
@@ -452,34 +412,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Handle PIN selection
 async function handlePinSelection(pin) {
-    console.log('Selected PIN:', pin);
     try {
-        // Send the PIN to the server for verification
-        const response = await fetch('/verify-pin', {
+        const urlParams = new URLSearchParams(window.location.search);
+        const username = urlParams.get('username');
+        
+        // Send selected PIN to server for verification
+        const verifyResponse = await fetch('/verify-pin-selection', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 pin: pin,
-                session_id: currentSessionId
+                username: username
             })
         });
-
-        const data = await response.json();
-        if (data.session_id) {
-            // PIN verified successfully
-            console.log('PIN verified successfully');
-            // Show success message
-            showMessage('PIN verified successfully', 'success');
+        
+        // Server will send success/failure and handle notifications
+        const result = await verifyResponse.json();
+        if (result.success) {
+            showSuccessMessage();
         } else {
-            // PIN verification failed
-            console.error('PIN verification failed');
-            showMessage('Incorrect PIN', 'error');
+            showErrorMessage();
         }
     } catch (error) {
-        console.error('Error verifying PIN:', error);
-        showMessage('Error verifying PIN: ' + error.message, 'error');
+        console.error('Error handling PIN selection:', error);
+        showErrorMessage();
     }
 }
 
