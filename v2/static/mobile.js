@@ -50,7 +50,7 @@ class MobileStepUp {
             
             window.mobileDebug.log('Checking for active session');
             window.mobileDebug.log('API Call - POST /get-pin-options');
-            const response = await fetch('/v2/get-pin-options', {
+            const response = await fetch('/get-pin-options', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -420,7 +420,7 @@ class MobileStepUp {
         
         try {
             // Check for active session
-            const response = await fetch('/v2/get-pin-options', {
+            const response = await fetch('/get-pin-options', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -529,7 +529,7 @@ function showMessage(message, type = 'info') {
 // Handle PIN options display
 async function displayPinOptions() {
     try {
-        const response = await fetch('/v2/get-pin-options');
+        const response = await fetch('/get-pin-options');
         const data = await response.json();
         
         const pinOptionsContainer = document.getElementById('pin-options');
