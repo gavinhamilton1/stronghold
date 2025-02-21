@@ -837,32 +837,21 @@ async def verify_pin_selection(request: Request):
 async def auth_complete(session_id: str):
     """Handle auth completion from mobile"""
     try:
-        # Get the client_id from the mapping
-        client_id = STEP_UP_TO_CLIENT.get(session_id)
-        logger.info(f"Found client_id {client_id} for session_id {session_id}")
-        
-        if client_id:
-            # Send via SSE if available
-            if client_id in CONNECTIONS:
-                logger.info(f"Sending auth_complete via SSE to client: {client_id}")
-                await CONNECTIONS[client_id].put({
-                    "event": "auth_complete",
-                    "data": "{}"
-                })
-            
-            # Also add to polling queue
-            logger.info(f"Adding auth_complete to polling queue for client: {client_id}")
-            POLLING_EVENTS[client_id].append({
-                "type": "auth_complete",
-                "data": None
+        # Send via SSE if available
+        if session_id in CONNECTIONS:
+            logger.info(f"Sending auth_complete via SSE to session: {session_id}")
+            await CONNECTIONS[session_id].put({
+                "event": "auth_complete",
+                "data": "{}"
             })
-            return JSONResponse(content={"status": "success"})
-        else:
-            logger.error(f"No client_id found for session_id: {session_id}")
-            return JSONResponse(
-                status_code=404,
-                content={"error": "Session not found"}
-            )
+        
+        # Also add to polling queue
+        logger.info(f"Adding auth_complete to polling queue for session: {session_id}")
+        POLLING_EVENTS[session_id].append({
+            "type": "auth_complete",
+            "data": None
+        })
+        return JSONResponse(content={"status": "success"})
     except Exception as e:
         logger.error(f"Error completing auth: {str(e)}")
         return JSONResponse(
