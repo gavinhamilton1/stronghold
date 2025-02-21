@@ -173,112 +173,44 @@ class Stronghold {
   }
 
   async startStepUp() {
+    console.log('Starting step-up process');
     try {
-      console.log('Starting step-up process...');
-      
-      // Get session ID and initialize connection
-      const username = document.getElementById('username-input').value.trim();
-      const sessionResponse = await fetch('/start-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ username })
-      });
-      
-      if (!sessionResponse.ok) {
-        throw new Error('Failed to start session: ' + sessionResponse.statusText);
-      }
-      
-      const sessionData = await sessionResponse.json();
-      this.sessionId = sessionData.session_id;
-      console.log('Got session ID:', this.sessionId);
-      
-      // Setup WebSocket connection
-      const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/${this.sessionId}`;
-      console.log('Attempting WebSocket connection to:', wsUrl);
-      
-      try {
-        this.ws = new WebSocket(wsUrl);
-        this.ws.onmessage = (event) => {
-          console.log('WebSocket message received:', event.data);
-          let data;
-          try {
-            data = JSON.parse(event.data);
-          } catch (e) {
-            console.error('Failed to parse WebSocket message:', e);
-            return;
-          }
-          
-          if (data.type === 'auth_complete') {
-            console.log('Received auth_complete via WebSocket');
-            this.handleAuthComplete();
-          } else if (data.type === 'auth_failed') {
-            console.log('Received auth_failed via WebSocket');
-            this.handleAuthFailed();
-          }
-        };
-        this.ws.onopen = () => {
-          console.log('WebSocket connection established');
-          this.setupPolling();
-        };
-        this.ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          this.setupPolling();
-        };
-      } catch (error) {
-        console.error('WebSocket failed, falling back to polling:', error);
-        await this.setupPolling();
-      }
-
-      // Generate new PIN
-      const response = await fetch('/get-current-pin', {
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to get PIN: ' + response.statusText);
-      }
-      
-      const data = await response.json();
-      
-      if (data.pin) {
-        // Display the PIN
-        const pinContainer = document.getElementById('browser-pin');
-        pinContainer.innerHTML = `
-          <div style="text-align: center;">
-            <div style="font-size: 24px; margin: 20px 0;">${data.pin}</div>
-            <div id="pin-status"></div>
-          </div>
-        `;
+        // Initialize new SSE connection
+        const clientId = await this.initializeStepUp('step-up-container', '/register-sse');
+        console.log('Got client ID:', clientId);
         
-        // Show the PIN step
-        showStep(2);
-      } else {
-        throw new Error('Failed to get PIN');
-      }
+        // Initiate step-up
+        const result = await fetch(`/initiate-step-up/${clientId}`, {
+            method: 'POST'
+        });
+        const data = await result.json();
+        console.log('Step-up initiated response:', data);
+        
+        // Start session with client_id
+        const sessionResponse = await fetch('/start-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: data.username,
+                client_id: clientId
+            })
+        });
+        
+        // Clear any existing status
+        const statusDiv = document.getElementById('status');
+        if (statusDiv) {
+            statusDiv.textContent = '';
+            statusDiv.className = '';
+        }
     } catch (error) {
-      console.error('Error starting step-up:', error);
-      showStatus('Error starting step-up process', 'error');
-      // Show error in PIN container
-      const pinContainer = document.getElementById('browser-pin');
-      if (pinContainer) {
-        pinContainer.innerHTML = `
-          <div style="text-align: center; padding: 20px;">
-            <h3 style="color: #dc3545;">Error</h3>
-            <p>${error.message}</p>
-            <button onclick="stronghold.startStepUp()" 
-                    style="margin-top: 20px; padding: 10px 20px; 
-                           background: #007bff; color: white; 
-                           border: none; border-radius: 4px; 
-                           cursor: pointer;">
-              Try Again
-            </button>
-          </div>
-        `;
-      }
+        console.error('Step-up error:', error);
+        const statusDiv = document.getElementById('status');
+        if (statusDiv) {
+            statusDiv.textContent = 'Error starting step-up: ' + error.message;
+            statusDiv.className = 'status error';
+        }
     }
   }
 

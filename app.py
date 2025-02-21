@@ -639,7 +639,7 @@ async def start_session(request: Request):
     try:
         data = await request.json()
         username = data.get('username')
-        logger.info(f"Starting new session for username: {username}")
+        client_id = data.get('client_id')
         
         if not username:
             logger.error("No username provided in start-session")
@@ -672,6 +672,10 @@ async def start_session(request: Request):
         logger.info(f"Stored session mapping: {username} -> {session_id} -> {pin}")
         logger.info(f"Current active_sessions: {active_sessions}")
         logger.info(f"Current session_pins: {session_pins}")
+        
+        # Map session_id to client_id
+        STEP_UP_TO_CLIENT[session_id] = client_id
+        logger.info(f"Mapped session_id {session_id} to client_id {client_id}")
         
         return JSONResponse(content={
             "session_id": session_id,
@@ -846,6 +850,43 @@ async def verify_pin_selection(request: Request):
         return JSONResponse(
             status_code=500,
             content={"error": "Failed to verify PIN"}
+        )
+
+@app.post("/auth-complete/{session_id}")
+async def auth_complete(session_id: str):
+    """Handle auth completion from mobile"""
+    try:
+        # Get the client_id from the mapping
+        client_id = STEP_UP_TO_CLIENT.get(session_id)
+        logger.info(f"Found client_id {client_id} for session_id {session_id}")
+        
+        if client_id:
+            # Send via SSE if available
+            if client_id in CONNECTIONS:
+                logger.info(f"Sending auth_complete via SSE to client: {client_id}")
+                await CONNECTIONS[client_id].put({
+                    "event": "auth_complete",
+                    "data": "{}"
+                })
+            
+            # Also add to polling queue
+            logger.info(f"Adding auth_complete to polling queue for client: {client_id}")
+            POLLING_EVENTS[client_id].append({
+                "type": "auth_complete",
+                "data": None
+            })
+            return JSONResponse(content={"status": "success"})
+        else:
+            logger.error(f"No client_id found for session_id: {session_id}")
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Session not found"}
+            )
+    except Exception as e:
+        logger.error(f"Error completing auth: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
         )
 
 if __name__ == "__main__":

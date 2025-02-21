@@ -245,8 +245,10 @@ class MobileStepUp {
             const data = await response.json();
             if (data.success) {
                 mobileDebug.log('PIN verified successfully');
-                // First connect WebSocket, which will automatically send auth_complete
-                this.connectWebSocket();
+                // Notify server of successful auth
+                await fetch(`/auth-complete/${this.sessionId}`, {
+                    method: 'POST'
+                });
                 // Show success screen
                 document.getElementById('success-email').textContent = 
                     document.getElementById('username-input').value.trim();
@@ -361,42 +363,6 @@ class MobileStepUp {
             window.mobileDebug.error('Error in handleSuccessfulAuth: ' + error);
             const pinOptions = document.getElementById('pin-options');
             pinOptions.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Error completing authentication. Please try again.</div>';
-        }
-    }
-
-    connectWebSocket() {
-        window.mobileDebug.log(`Setting up WebSocket for session_id: ${this.sessionId}`);
-        // Use relative path and let browser handle the protocol and host
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/${this.sessionId}`;
-        this.ws = new WebSocket(wsUrl);
-        
-        this.ws.onopen = () => {
-            window.mobileDebug.log('WebSocket connection established');
-            // Send auth complete message immediately after connection
-            this.sendAuthComplete();
-            document.getElementById('input-container').style.display = 'block';
-        };
-        
-        this.ws.onclose = () => {
-            window.mobileDebug.log('WebSocket connection closed');
-            document.getElementById('input-container').style.display = 'none';
-        };
-        
-        this.ws.onerror = (error) => {
-            window.mobileDebug.error('WebSocket error: ' + error);
-        };
-    }
-
-    async sendAuthComplete() {
-        try {
-            // Send auth complete message
-            console.log('Sending auth_complete message');
-            this.ws.send(JSON.stringify({
-                type: 'auth_complete'
-            }));
-        } catch (error) {
-            console.error('Error sending auth complete:', error);
         }
     }
 
