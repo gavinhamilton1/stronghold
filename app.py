@@ -568,7 +568,10 @@ async def get_pin_options(request: Request):
         random.shuffle(pin_options)
         
         logger.info(f"Returning PIN options: {pin_options} including correct PIN: {correct_pin}")
-        return JSONResponse(content={"pins": pin_options})
+        return JSONResponse(content={
+            "pins": pin_options,
+            "session_id": session_id
+        })
     except Exception as e:
         logger.error(f'Error generating PIN options: {str(e)}')
         return JSONResponse(

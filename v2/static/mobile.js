@@ -65,7 +65,8 @@ class MobileStepUp {
             
             const data = await response.json();
             window.mobileDebug.log('API Response: ' + JSON.stringify(data));
-            this.sessionId = data.session_id;
+            // Get session_id from active_sessions
+            this.sessionId = data.session_id || active_sessions[username];
             window.mobileDebug.log(`Mobile: Joined session with ID: ${this.sessionId}`);
             
             const pinOptions = document.getElementById('pin-options');
