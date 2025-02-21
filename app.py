@@ -281,15 +281,27 @@ async def websocket_endpoint(websocket: WebSocket, step_up_id: str):
                 logger.info(f"📩 Received message: {message}")
                 
                 if message.get('type') == 'auth_complete':
-                    # Broadcast auth_complete event to all connected clients for this session
-                    for ws in WS_CONNECTIONS.values():
-                        try:
-                            await ws.send_json({
-                                "type": "auth_complete",
-                                "session_id": step_up_id
+                    # Get the client_id from the mapping
+                    client_id = STEP_UP_TO_CLIENT.get(step_up_id)
+                    logger.info(f"Found client_id {client_id} for step_up_id {step_up_id}")
+                    
+                    if client_id:
+                        # Send via SSE if available
+                        if client_id in CONNECTIONS:
+                            logger.info(f"Sending auth_complete via SSE to client: {client_id}")
+                            await CONNECTIONS[client_id].put({
+                                "event": "auth_complete",
+                                "data": "{}"
                             })
-                        except Exception as e:
-                            logger.error(f"Error sending auth_complete: {e}")
+                        
+                        # Also add to polling queue
+                        logger.info(f"Adding auth_complete to polling queue for client: {client_id}")
+                        POLLING_EVENTS[client_id].append({
+                            "type": "auth_complete",
+                            "data": None
+                        })
+                    else:
+                        logger.error(f"No client_id found for step_up_id: {step_up_id}")
                 
         except WebSocketDisconnect:
             logger.info(f"👋 WebSocket connection closed for step_up_id: {step_up_id}")
