@@ -207,8 +207,9 @@ class MobileStepUp {
 
     async handlePinSelection(pin) {
         try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const username = urlParams.get('username');
+            // Get username from input field
+            const username = document.getElementById('username-input').value.trim();
+            window.mobileDebug.log(`Handling PIN selection for username: ${username}`);
             
             // Get session ID from active session
             const response = await fetch('/get-pin-options', {
@@ -219,7 +220,12 @@ class MobileStepUp {
                 body: JSON.stringify({ username })
             });
             
+            if (!response.ok) {
+                throw new Error('Failed to get session info');
+            }
+            
             const data = await response.json();
+            window.mobileDebug.log(`Got session ID: ${data.session_id}`);
             const session_id = data.session_id;
             
             // Send selected PIN to server for verification
@@ -234,16 +240,42 @@ class MobileStepUp {
                 })
             });
             
+            if (!verifyResponse.ok) {
+                throw new Error('Failed to verify PIN');
+            }
+            
             // Server will send success/failure and handle notifications
             const result = await verifyResponse.json();
             if (result.success) {
-                showSuccessMessage();
+                this.handleSuccessfulAuth();
             } else {
-                showErrorMessage();
+                const pinOptions = document.getElementById('pin-options');
+                pinOptions.innerHTML = `
+                    <div style="color: red; text-align: center; padding: 20px;">
+                        Incorrect PIN. Please try again.
+                        <br><br>
+                        <button onclick="mobileStepUp.loadPinOptions()" 
+                                style="background: #007bff; color: white; 
+                                       padding: 10px 20px; border: none; 
+                                       border-radius: 4px;">
+                            Try Again
+                        </button>
+                    </div>`;
             }
         } catch (error) {
-            console.error('Error handling PIN selection:', error);
-            showErrorMessage();
+            window.mobileDebug.error('Error handling PIN selection: ' + error);
+            const pinOptions = document.getElementById('pin-options');
+            pinOptions.innerHTML = `
+                <div style="color: red; text-align: center; padding: 20px;">
+                    ${error.message}
+                    <br><br>
+                    <button onclick="mobileStepUp.loadPinOptions()" 
+                            style="background: #007bff; color: white; 
+                                   padding: 10px 20px; border: none; 
+                                   border-radius: 4px;">
+                        Try Again
+                    </button>
+                </div>`;
         }
     }
 
@@ -421,49 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.mobileStepUp = new MobileStepUp();
     mobileStepUp.init();
 });
-
-// Handle PIN selection
-async function handlePinSelection(pin) {
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const username = urlParams.get('username');
-        
-        // Get session ID from active session
-        const response = await fetch('/get-pin-options', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username })
-        });
-        
-        const data = await response.json();
-        const session_id = data.session_id;
-        
-        // Send selected PIN to server for verification
-        const verifyResponse = await fetch('/verify-pin-selection', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                pin: pin,
-                session_id: session_id
-            })
-        });
-        
-        // Server will send success/failure and handle notifications
-        const result = await verifyResponse.json();
-        if (result.success) {
-            showSuccessMessage();
-        } else {
-            showErrorMessage();
-        }
-    } catch (error) {
-        console.error('Error handling PIN selection:', error);
-        showErrorMessage();
-    }
-}
 
 // Function to show messages to the user
 function showMessage(message, type = 'info') {
