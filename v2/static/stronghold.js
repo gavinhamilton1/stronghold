@@ -155,6 +155,7 @@ class Stronghold {
       pinContainer.innerHTML = `
         <div style="text-align: center;">
           <h3 style="color: #28a745;">✓ PIN Verified</h3>
+          <button onclick="closeAuthOverlay()" style="margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Return to dashboard</button>
         </div>
       `;
     }
