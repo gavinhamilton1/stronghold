@@ -255,14 +255,7 @@ class MobileStepUp {
                 const pinOptions = document.getElementById('pin-options');
                 pinOptions.innerHTML = `
                     <div style="color: red; text-align: center; padding: 20px;">
-                        Incorrect PIN. Please try again.
-                        <br><br>
-                        <button onclick="mobileStepUp.loadPinOptions()" 
-                                style="background: #007bff; color: white; 
-                                       padding: 10px 20px; border: none; 
-                                       border-radius: 4px;">
-                            Try Again
-                        </button>
+                        Incorrect PIN
                     </div>`;
             }
         } catch (error) {
@@ -358,6 +351,7 @@ class MobileStepUp {
                 <div style="text-align: center; padding: 20px;">
                     <h3 style="color: #28a745;">✓ Authentication Successful</h3>
                     <p>You can now close this window and return to your browser.</p>
+                    <button onclick="#" >Return to dashboard</button>
                 </div>
             `;
             
