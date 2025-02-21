@@ -424,22 +424,389 @@ async def get_current_pin():
         "step_up_id": step_up_id
     }
 
+@app.post("/verify-pin")
+async def verify_pin(request: Request):
+    """Verify a PIN and return a session ID if correct"""
+    try:
+        data = await request.json()
+        pin = data.get('pin')
+        session_id = data.get('session_id')
+        
+        logger.info(f'Verifying PIN: user selected {pin} for session {session_id}')
+        correct_pin = session_pins.get(session_id)
+        logger.info(f'Correct PIN for session {session_id} is {correct_pin}')
+        
+        if str(pin) == str(correct_pin):
+            logger.info(f'PIN verified successfully for session {session_id}')
+            # Notify browser of successful authentication
+            event = {
+                'type': 'auth_complete',
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            # Add event to polling queue
+            if session_id in POLLING_EVENTS:
+                logger.info(f'Adding auth_complete event to polling queue for session {session_id}')
+                POLLING_EVENTS[session_id].append(event)
+            
+            # Also send through WebSocket if connected
+            if session_id in WS_CONNECTIONS:
+                logger.info(f'Sending auth_complete through WebSocket for session {session_id}')
+                await WS_CONNECTIONS[session_id].send_json(event)
+            
+            return JSONResponse(content={'session_id': session_id})
+        else:
+            logger.error(f'PIN verification failed for session {session_id}: user entered {pin}, expected {correct_pin}')
+            
+            # Send auth_failed event through WebSocket
+            if session_id in WS_CONNECTIONS:
+                logger.info(f'Sending auth_failed through WebSocket for session {session_id}')
+                try:
+                    await WS_CONNECTIONS[session_id].send_json({
+                        'type': 'auth_failed',
+                        'timestamp': datetime.now().isoformat()
+                    })
+                    
+                    # Add cleanup event to polling queue
+                    if session_id in POLLING_EVENTS:
+                        POLLING_EVENTS[session_id].append({
+                            'type': 'cleanup_session',
+                            'timestamp': datetime.now().isoformat()
+                        })
+                        
+                    # Clean up session after browser has been notified
+                    async def delayed_cleanup():
+                        await asyncio.sleep(1)  # Give browser time to process the auth_failed event
+                        if session_id in session_pins:
+                            del session_pins[session_id]
+                        if session_id in POLLING_EVENTS:
+                            del POLLING_EVENTS[session_id]
+                        if session_id in WS_CONNECTIONS:
+                            del WS_CONNECTIONS[session_id]
+                        # Remove from active_sessions
+                        for username, sess_id in list(active_sessions.items()):
+                            if sess_id == session_id:
+                                del active_sessions[username]
+                        logger.info(f'Cleaned up failed session {session_id}')
+                    
+                    # Schedule the cleanup
+                    asyncio.create_task(delayed_cleanup())
+                    
+                except Exception as e:
+                    logger.error(f'Error sending auth_failed event: {str(e)}')
+            
+            return JSONResponse(
+                status_code=400,
+                content={'error': 'Invalid PIN'}
+            )
+    except Exception as e:
+        logger.error(f'Error verifying PIN: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={'error': str(e)}
+        )
+
+@app.post("/update-pin")
+async def update_pin(pin_data: dict):
+    """Update the current valid PIN"""
+    global CURRENT_PIN
+    CURRENT_PIN = pin_data.get("pin")
+    return {"status": "success"}
+
+@app.post("/get-pin-options", response_class=JSONResponse)
+async def get_pin_options(request: Request):
+    """Get PIN options for mobile device"""
+    try:
+        data = await request.json()
+        username = data.get('username')
+        logger.info(f"\nProcessing PIN options request:")
+        logger.info(f"  Username: {username}")
+        if not username:
+            logger.error("  Error: No username provided")
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Username is required"}
+            )
+
+        # Get session_id for this username
+        session_id = active_sessions.get(username)
+        logger.info(f"  Found session_id: {session_id}")
+        if not session_id:
+            logger.error(f"  Error: No active session found")
+            return JSONResponse(
+                status_code=404,
+                content={"error": "No active session found for username"}
+            )
+
+        # Get the correct PIN for this session
+        correct_pin = session_pins.get(session_id)
+        logger.info(f"  Correct PIN: {correct_pin}")
+
+        # Generate 3 completely random PINs
+        pins = {correct_pin}  # Include the correct PIN
+        while len(pins) < 3:
+            pins.add(str(random.randint(10, 99)))
+        
+        # Convert to list and shuffle
+        pin_options = list(pins)
+        random.shuffle(pin_options)
+        
+        logger.info(f"Returning PIN options: {pin_options} including correct PIN: {correct_pin}")
+        return JSONResponse(content={
+            "pins": pin_options,
+            "session_id": session_id
+        })
+    except Exception as e:
+        logger.error(f'Error generating PIN options: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Failed to generate PIN options"}
+        )
+
+@app.post("/generate-pin")
+async def generate_pin(request: Request):
+    """Generate a new PIN for a client"""
+    try:
+        data = await request.json()
+        client_id = data.get('client_id')
+        if not client_id:
+            logger.error('No client_id provided')
+            return JSONResponse(
+                status_code=400,
+                content={"error": "No client_id provided"}
+            )
+            
+        # Generate a random 2-digit PIN
+        pin = str(random.randint(10, 99))
+        logger.info(f'Generated PIN {pin} for client {client_id}')
+        
+        # Store the PIN with the client_id
+        pins[client_id] = pin
+        
+        # Also update the current PIN for verification
+        global CURRENT_PIN
+        CURRENT_PIN = pin
+        # Store this PIN for the step-up process
+        step_up_id = str(uuid.uuid4())
+        step_up_pins[step_up_id] = pin
+        STEP_UP_TO_CLIENT[step_up_id] = client_id
+        
+        return JSONResponse(content={
+            "pin": pin,
+            "client_id": client_id,
+            "step_up_id": step_up_id
+        })
+    except Exception as e:
+        logger.error(f'Error generating PIN: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+@app.get("/cert-info")
+async def get_cert_info():
+    """Get a hash of the server's certificate public information"""
+    try:
+        context = SSL.Context(SSL.TLSv1_2_METHOD)
+        connection = SSL.Connection(context)
+        cert = connection.get_peer_certificate()
+        
+        # Only expose public information
+        public_info = {
+            "issuer": cert.get_issuer().get_components(),
+            "subject": cert.get_subject().get_components(),
+            "serial_number": cert.get_serial_number(),
+            "not_before": cert.get_notBefore().decode(),
+            "not_after": cert.get_notAfter().decode()
+        }
+        
+        # Create a deterministic hash of the public info
+        hash_input = str(public_info).encode()
+        cert_hash = hashlib.sha256(hash_input).hexdigest()
+        
+        return {
+            "cert_hash": cert_hash,
+            "public_info": public_info
+        }
+    except Exception as e:
+        logger.error(f"Error getting certificate info: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Failed to get certificate information"}
+        )
+
+@app.post("/start-session")
+async def start_session(request: Request):
+    """Start a new session for a username"""
+    try:
+        data = await request.json()
+        username = data.get('username')
+        
+        if not username:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Username is required"}
+            )
+        
+        # Generate session ID and PIN
+        session_id = str(uuid.uuid4())
+        pin = str(random.randint(10, 99))
+        
+        # Store session information
+        active_sessions[username] = session_id
+        session_pins[session_id] = pin
+        
+        return JSONResponse(content={
+            "session_id": session_id,
+            "pin": pin
+        })
+    except Exception as e:
+        logger.error(f'Error starting session: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+@app.get("/join-session")
+async def join_session(username: str):
+    """Get session info for a username if one exists"""
+    try:
+        logger.info(f"Checking for existing session for username: {username}")
+        
+        # Check if user has an active session
+        session_id = active_sessions.get(username)
+        if not session_id:
+            logger.error(f"No active session found for username: {username}")
+            return JSONResponse(
+                status_code=404,
+                content={"error": "No active session found"}
+            )
+        
+        logger.info(f"Found active session: {session_id} for username: {username}")
+        return JSONResponse(content={
+            "session_id": session_id
+        })
+        
+    except Exception as e:
+        logger.error(f'Error joining session: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+@app.get("/poll-updates/{session_id}")
+async def poll_updates(session_id: str):
+    """Poll for updates for a given session"""
+    try:
+        logger.info(f'Polling updates for session: {session_id}')
+        events = list(POLLING_EVENTS[session_id])
+        # Clear events after retrieving them
+        POLLING_EVENTS[session_id].clear()
+        logger.info(f'Returning events: {events}')
+        return JSONResponse(content={"events": events})
+    except Exception as e:
+        logger.error(f'Error polling updates: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+@app.delete("/delete-session/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session and all its associated data"""
+    try:
+        logger.info(f'Deleting session: {session_id}')
+        # Remove from session_pins
+        if session_id in session_pins:
+            del session_pins[session_id]
+        
+        # Remove from POLLING_EVENTS
+        if session_id in POLLING_EVENTS:
+            del POLLING_EVENTS[session_id]
+        
+        # Remove from WS_CONNECTIONS
+        if session_id in WS_CONNECTIONS:
+            del WS_CONNECTIONS[session_id]
+        
+        # Remove from active_sessions
+        for username, sess_id in list(active_sessions.items()):
+            if sess_id == session_id:
+                del active_sessions[username]
+        
+        logger.info(f'Successfully deleted session {session_id}')
+        return JSONResponse(content={'status': 'success'})
+    except Exception as e:
+        logger.error(f'Error deleting session: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={'error': str(e)}
+        )
+
+@app.get("/sample", response_class=HTMLResponse)
+async def sample(request: Request):
+    """Serve sample integration page"""
+    return templates.TemplateResponse("sample-integration.html", {
+        "request": request,
+        "show_footer": False
+    })
+
+@app.get("/payment", response_class=HTMLResponse)
+async def payment(request: Request):
+    """Serve payment page"""
+    return templates.TemplateResponse("payment.html", {
+        "request": request,
+        "show_footer": False
+    })
+
+@app.get("/manifest.json")
+async def manifest():
+    return FileResponse("static/manifest.json")
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    """Serve dashboard page"""
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "show_footer": False
+    })
+
+@app.get("/pincode", response_class=HTMLResponse)
+async def pincode(request: Request):
+    username = request.query_params.get('username')
+    return templates.TemplateResponse("pincode.html", {
+        "request": request,
+        "username": username
+    })
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin(request: Request):
+    """Admin page showing active sessions"""
+    logger.info("Accessing admin page")
+    logger.info(f"Active sessions: {active_sessions}")
+    logger.info(f"Session PINs: {session_pins}")
+    logger.info(f"Client mappings: {STEP_UP_TO_CLIENT}")
+    
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "active_sessions": active_sessions,
+        "session_pins": session_pins,
+        "step_up_to_client": STEP_UP_TO_CLIENT
+    })
+
 @app.post("/verify-pin-selection", response_class=JSONResponse)
 async def verify_pin_selection(request: Request):
     """Verify selected PIN against session PIN"""
     try:
         data = await request.json()
         pin = str(data.get('pin'))
-        username = data.get('username')
+        session_id = data.get('session_id')
         
-        # Get session ID for username
-        session_id = active_sessions.get(username)
-        logger.info(f"Verifying PIN for user {username} with session: {session_id}")
+        logger.info(f"Verifying PIN for session: {session_id}")
         
-        if not username or not pin:
+        if not session_id or not pin:
             return JSONResponse(
                 status_code=400,
-                content={"error": "Missing pin or username"}
+                content={"error": "Missing pin or session_id"}
             )
         
         # Get correct PIN for this session
@@ -454,21 +821,6 @@ async def verify_pin_selection(request: Request):
         # Compare PINs
         success = pin == correct_pin
         logger.info(f"PIN verification {'successful' if success else 'failed'}")
-        
-        # If successful, notify browser via WebSocket
-        if success:
-            if session_id in WS_CONNECTIONS:
-                await WS_CONNECTIONS[session_id].send_json({
-                    "type": "auth_complete",
-                    "data": {}
-                })
-        else:
-            # Send failure to browser
-            if session_id in WS_CONNECTIONS:
-                await WS_CONNECTIONS[session_id].send_json({
-                    "type": "auth_failed",
-                    "data": {}
-                })
         
         return JSONResponse(content={
             "success": success
