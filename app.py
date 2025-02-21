@@ -31,19 +31,13 @@ logger = logging.getLogger(__name__)
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Log request
-        logger.info(f"\n{'='*50}\nRequest: {request.method} {request.url}")
-        
-        # Log request headers
-        logger.info("Headers:")
-        for name, value in request.headers.items():
-            logger.info(f"  {name}: {value}")
+        logger.info(f"Request: {request.method} {request.url}")
         
         # Log request body for POST/PUT requests
         if request.method in ["POST", "PUT"]:
             try:
                 body = await request.body()
                 if body:
-                    logger.info("Body:")
                     try:
                         # Try to parse as JSON
                         json_body = json.loads(body)
@@ -58,12 +52,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         
         # Log response
-        logger.info(f"\nResponse: {response.status_code}")
-        logger.info("Headers:")
-        for name, value in response.headers.items():
-            logger.info(f"  {name}: {value}")
+        logger.info(f"Response: {response.status_code}")
         
-        logger.info(f"{'='*50}\n")
         return response
 
 # Add logging middleware

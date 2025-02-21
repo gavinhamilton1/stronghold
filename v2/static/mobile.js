@@ -218,7 +218,7 @@ class MobileStepUp {
             });
             
             // Verify the pin
-            const response = await fetch('/verify-pin', {
+            const response = await fetch('/verify-pin-selection', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -242,8 +242,11 @@ class MobileStepUp {
             }
             
             const data = await response.json();
-            if (data.session_id) {
+            if (data.success) {
                 mobileDebug.log('PIN verified successfully');
+                // Connect WebSocket and send auth complete
+                this.connectWebSocket();
+                this.sendAuthComplete();
                 // Show success screen
                 document.getElementById('success-email').textContent = 
                     document.getElementById('username-input').value.trim();
