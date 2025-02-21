@@ -210,6 +210,18 @@ class MobileStepUp {
             const urlParams = new URLSearchParams(window.location.search);
             const username = urlParams.get('username');
             
+            // Get session ID from active session
+            const response = await fetch('/get-pin-options', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username })
+            });
+            
+            const data = await response.json();
+            const session_id = data.session_id;
+            
             // Send selected PIN to server for verification
             const verifyResponse = await fetch('/verify-pin-selection', {
                 method: 'POST',
@@ -218,7 +230,7 @@ class MobileStepUp {
                 },
                 body: JSON.stringify({
                     pin: pin,
-                    username: username
+                    session_id: session_id
                 })
             });
             
@@ -416,6 +428,18 @@ async function handlePinSelection(pin) {
         const urlParams = new URLSearchParams(window.location.search);
         const username = urlParams.get('username');
         
+        // Get session ID from active session
+        const response = await fetch('/get-pin-options', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username })
+        });
+        
+        const data = await response.json();
+        const session_id = data.session_id;
+        
         // Send selected PIN to server for verification
         const verifyResponse = await fetch('/verify-pin-selection', {
             method: 'POST',
@@ -424,7 +448,7 @@ async function handlePinSelection(pin) {
             },
             body: JSON.stringify({
                 pin: pin,
-                username: username
+                session_id: session_id
             })
         });
         

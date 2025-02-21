@@ -798,6 +798,7 @@ async def verify_pin_selection(request: Request):
     """Verify selected PIN against session PIN"""
     try:
         data = await request.json()
+        # Convert pin to string if it's a number
         pin = str(data.get('pin'))
         session_id = data.get('session_id')
         
