@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
-from typing import Dict
+from typing import Dict, List
 import uuid
 import asyncio
 from collections import defaultdict, deque
@@ -17,8 +17,57 @@ import ssl
 import hashlib
 from OpenSSL import SSL
 from datetime import datetime
+from starlette.middleware.base import BaseHTTPMiddleware
 
 app = FastAPI()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Log request
+        logger.info(f"\n{'='*50}\nRequest: {request.method} {request.url}")
+        
+        # Log request headers
+        logger.info("Headers:")
+        for name, value in request.headers.items():
+            logger.info(f"  {name}: {value}")
+        
+        # Log request body for POST/PUT requests
+        if request.method in ["POST", "PUT"]:
+            try:
+                body = await request.body()
+                if body:
+                    logger.info("Body:")
+                    try:
+                        # Try to parse as JSON
+                        json_body = json.loads(body)
+                        logger.info(f"  {json.dumps(json_body, indent=2)}")
+                    except:
+                        # If not JSON, log as string
+                        logger.info(f"  {body.decode()}")
+            except Exception as e:
+                logger.error(f"Error reading request body: {e}")
+        
+        # Process request and get response
+        response = await call_next(request)
+        
+        # Log response
+        logger.info(f"\nResponse: {response.status_code}")
+        logger.info("Headers:")
+        for name, value in response.headers.items():
+            logger.info(f"  {name}: {value}")
+        
+        logger.info(f"{'='*50}\n")
+        return response
+
+# Add logging middleware
+app.add_middleware(LoggingMiddleware)
 
 # Mount static files directory
 app.mount("/static", StaticFiles(directory="v2/static", html=True), name="static")
@@ -490,15 +539,16 @@ async def update_pin(pin_data: dict):
     CURRENT_PIN = pin_data.get("pin")
     return {"status": "success"}
 
-@app.post("/get-pin-options")
+@app.post("/get-pin-options", response_class=JSONResponse)
 async def get_pin_options(request: Request):
     """Get PIN options for mobile device"""
     try:
         data = await request.json()
         username = data.get('username')
-        logger.info(f"Getting PIN options for username: {username}")
+        logger.info(f"\nProcessing PIN options request:")
+        logger.info(f"  Username: {username}")
         if not username:
-            logger.error("No username provided")
+            logger.error("  Error: No username provided")
             return JSONResponse(
                 status_code=400,
                 content={"error": "Username is required"}
@@ -506,9 +556,9 @@ async def get_pin_options(request: Request):
 
         # Get session_id for this username
         session_id = active_sessions.get(username)
-        logger.info(f"Found session_id: {session_id} for username: {username}")
+        logger.info(f"  Found session_id: {session_id}")
         if not session_id:
-            logger.error(f"No active session found for username: {username}")
+            logger.error(f"  Error: No active session found")
             return JSONResponse(
                 status_code=404,
                 content={"error": "No active session found for username"}
@@ -516,7 +566,7 @@ async def get_pin_options(request: Request):
 
         # Get the correct PIN for this session
         correct_pin = session_pins.get(session_id)
-        logger.info(f"Correct PIN for session: {correct_pin}")
+        logger.info(f"  Correct PIN: {correct_pin}")
 
         # Generate 3 completely random PINs
         pins = {correct_pin}  # Include the correct PIN
@@ -528,7 +578,7 @@ async def get_pin_options(request: Request):
         random.shuffle(pin_options)
         
         logger.info(f"Returning PIN options: {pin_options} including correct PIN: {correct_pin}")
-        return {"pins": pin_options}
+        return JSONResponse(content={"pins": pin_options})
     except Exception as e:
         logger.error(f'Error generating PIN options: {str(e)}')
         return JSONResponse(
