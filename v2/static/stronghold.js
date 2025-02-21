@@ -226,6 +226,15 @@ class Stronghold {
     this.eventSource = new EventSource(`/register-sse/${this.sessionId}`);
     console.log('SSE connection initialized with session ID:', this.sessionId);
 
+    // Add connection status logging
+    this.eventSource.onopen = () => {
+      console.log('SSE connection opened successfully');
+    };
+    
+    this.eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+    };
+
     // Setup event listeners
     this.setupEventListeners();
   }
@@ -361,6 +370,11 @@ class Stronghold {
   setupEventListeners() {
     console.log('Setting up event listeners');
     
+    // Log all incoming events
+    this.eventSource.onmessage = (event) => {
+      console.log('Raw SSE event received:', event);
+    };
+
     // Listen for step-up initiation
     this.eventSource.addEventListener('step_up_initiated', (event) => {
       console.log('Received step-up initiated event:', event);
@@ -384,25 +398,7 @@ class Stronghold {
     this.eventSource.addEventListener('auth_complete', (event) => {
         console.log('Received auth complete event');
         try {
-            // Update AAL level
-            const authLevelDiv = document.getElementById('auth-level');
-            const downgradeButton = document.getElementById('downgrade-button');
-            const qrContainer = document.getElementById('qr-container');
-            
-            // Remove QR code container if it exists
-            if (qrContainer) {
-                qrContainer.remove();
-            }
-            
-            authLevelDiv.textContent = 'Auth Level: AAL3';
-            authLevelDiv.style.color = '#fd7e14';
-            downgradeButton.style.display = 'block';
-            localStorage.setItem('authLevel', 'AAL3');
-            this.aalUpdated = true;
-
-            // Start 20-second timer
-            this.startAALTimer(20);
-            console.log('Successfully updated AAL level');
+            this.handleAuthComplete();
         } catch (error) {
             console.error('Error handling auth_complete:', error);
         }
