@@ -2,8 +2,14 @@ async showConfirmation(username) {
     try {
         // Check for active session
         window.mobileDebug.log('Checking for active session');
-        window.mobileDebug.log('API Call - GET /get-pin-options?username=' + username);
-        const response = await fetch(`/get-pin-options?username=${encodeURIComponent(username)}`);
+        window.mobileDebug.log('API Call - GET /get-pin-options');
+        const response = await fetch(`/get-pin-options`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username })
+        });
         
         if (!response.ok) {
             window.mobileDebug.error(`Server returned status: ${response.status}`);

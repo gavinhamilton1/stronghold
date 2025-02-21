@@ -490,10 +490,12 @@ async def update_pin(pin_data: dict):
     CURRENT_PIN = pin_data.get("pin")
     return {"status": "success"}
 
-@app.get("/get-pin-options")
-async def get_pin_options(request: Request, username: str = None):
+@app.post("/get-pin-options")
+async def get_pin_options(request: Request):
     """Get PIN options for mobile device"""
     try:
+        data = await request.json()
+        username = data.get('username')
         logger.info(f"Getting PIN options for username: {username}")
         if not username:
             logger.error("No username provided")
