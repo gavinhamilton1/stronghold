@@ -343,8 +343,6 @@ html, body {
     cursor: pointer;
     color: #3c6c8c;
     font-weight: bold;
-    max-width: 70px;
-    max-height: 70px;
 }
 
 #status {
