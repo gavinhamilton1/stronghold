@@ -11,6 +11,7 @@
                 <th>Username</th>
                 <th>Session ID</th>
                 <th>PIN</th>
+                <th>Client ID</th>
             </tr>
         </thead>
         <tbody>
@@ -19,6 +20,7 @@
                 <td>{{ username }}</td>
                 <td>{{ session_id }}</td>
                 <td>{{ session_pins[session_id] }}</td>
+                <td>{{ step_up_to_client[session_id] }}</td>
             </tr>
             {% endfor %}
         </tbody>

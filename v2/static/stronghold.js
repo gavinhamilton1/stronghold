@@ -175,43 +175,59 @@ class Stronghold {
   async startStepUp() {
     console.log('Starting step-up process');
     try {
-        // Initialize new SSE connection
-        const clientId = await this.initializeStepUp('step-up-container', '/register-sse');
-        console.log('Got client ID:', clientId);
-        
-        // Initiate step-up
-        const result = await fetch(`/initiate-step-up/${clientId}`, {
-            method: 'POST'
-        });
-        const data = await result.json();
-        console.log('Step-up initiated response:', data);
-        
-        // Start session with client_id
-        const sessionResponse = await fetch('/start-session', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                username: data.username,
-                client_id: clientId
-            })
-        });
-        
-        // Clear any existing status
-        const statusDiv = document.getElementById('status');
-        if (statusDiv) {
-            statusDiv.textContent = '';
-            statusDiv.className = '';
-        }
+      // Get username from localStorage
+      const username = localStorage.getItem('username');
+      
+      // Start session
+      const sessionResponse = await fetch('/start-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: username,
+        })
+      });
+
+      if (!sessionResponse.ok) {
+        throw new Error('Failed to start session');
+      }
+
+      const sessionData = await sessionResponse.json();
+      console.log('Session started:', sessionData);
+      this.sessionId = sessionData.session_id;
+
+      // Initialize SSE connection with session ID
+      await this.initializeSSE(this.sessionId);
+
+      // Clear any existing status
+      const statusDiv = document.getElementById('status');
+      if (statusDiv) {
+        statusDiv.textContent = '';
+        statusDiv.className = '';
+      }
     } catch (error) {
-        console.error('Step-up error:', error);
-        const statusDiv = document.getElementById('status');
-        if (statusDiv) {
-            statusDiv.textContent = 'Error starting step-up: ' + error.message;
-            statusDiv.className = 'status error';
-        }
+      console.error('Step-up error:', error);
+      const statusDiv = document.getElementById('status');
+      if (statusDiv) {
+        statusDiv.textContent = 'Error starting step-up: ' + error.message;
+        statusDiv.className = 'status error';
+      }
     }
+  }
+
+  async initializeSSE(clientId) {
+    // Close existing SSE connection if any
+    if (this.eventSource) {
+      this.eventSource.close();
+    }
+
+    // Create new SSE connection
+    this.eventSource = new EventSource(`/register-sse/${clientId}`);
+    console.log('SSE connection initialized with client ID:', clientId);
+
+    // Setup event listeners
+    this.setupEventListeners();
   }
 
   handleAuthFailed() {
@@ -252,41 +268,6 @@ class Stronghold {
     // Close WebSocket connection
     if (this.ws) {
       this.ws.close();
-    }
-  }
-
-  async initializeStepUp(containerId, sseEndpoint) {
-    // If we already have a connection, just return the existing client ID
-    if (this.eventSource && this.currentClientId) {
-      console.log('Using existing SSE connection with client ID:', this.currentClientId);
-      return this.currentClientId;
-    }
-
-    this.containerElement = document.getElementById(containerId);
-    
-    try {
-      // Try SSE first
-      console.log('Attempting to establish SSE connection...');
-      this.eventSource = new EventSource(sseEndpoint);
-      
-      // Set up event listeners with a timeout
-      const sseResult = await Promise.race([
-        this.setupSSE(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('SSE timeout')), 3000))
-      ]);
-      
-      console.log('SSE connection established successfully');
-      return sseResult;
-    } catch (error) {
-      console.log('SSE connection failed, falling back to polling:', error);
-      // Clean up failed SSE connection if it exists
-      if (this.eventSource) {
-        this.eventSource.close();
-        this.eventSource = null;
-      }
-      
-      // Fall back to polling
-      return this.setupPolling();
     }
   }
 

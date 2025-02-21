@@ -45,7 +45,7 @@ class LoginForm {
         }
 
         // Handle continue button click
-        continueButton.addEventListener('click', () => {
+        continueButton.addEventListener('click', async () => {
             const username = usernameInput.value.trim();
             if (username) {
                 // Handle remember me
@@ -63,8 +63,21 @@ class LoginForm {
                         }
                     });
                 } else {
-                    // For other pages, redirect to dashboard
-                    window.location.href = '/dashboard';
+                    try {
+                        // Get client ID first
+                        const clientResponse = await fetch('/register-polling');
+                        const clientData = await clientResponse.json();
+                        const clientId = clientData.client_id;
+                        
+                        // Store client ID in localStorage for step-up later
+                        localStorage.setItem('clientId', clientId);
+                        localStorage.setItem('username', username);
+                        
+                        // Redirect to dashboard
+                        window.location.href = '/dashboard';
+                    } catch (error) {
+                        console.error('Error during login:', error);
+                    }
                 }
             }
         });
@@ -86,5 +99,43 @@ class LoginForm {
             if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
         }
         return null;
+    }
+}
+
+async function startSession(username) {
+    try {
+        // First get a client ID
+        const clientResponse = await fetch('/register-polling');
+        const clientData = await clientResponse.json();
+        const clientId = clientData.client_id;
+        console.log('Got client ID:', clientId);
+
+        // Start session
+        const response = await fetch('/start-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                client_id: clientId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to start session');
+        }
+
+        const data = await response.json();
+        console.log('Session started:', data);
+
+        // Initialize SSE connection with the client ID
+        const eventSource = new EventSource(`/register-sse/${clientId}`);
+        // Setup event listeners...
+
+        return data;
+    } catch (error) {
+        console.error('Error starting session:', error);
+        throw error;
     }
 } 

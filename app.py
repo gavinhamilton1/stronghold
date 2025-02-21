@@ -357,6 +357,8 @@ async def register_polling():
     """Endpoint for registering polling clients"""
     client_id = str(uuid.uuid4())
     logger.info(f"🔄 Registering polling client: {client_id}")
+    # Initialize polling events queue for this client
+    POLLING_EVENTS[client_id] = deque()
     return {"client_id": client_id}
 
 @app.get("/poll-updates/{client_id}")
@@ -639,43 +641,20 @@ async def start_session(request: Request):
     try:
         data = await request.json()
         username = data.get('username')
-        client_id = data.get('client_id')
         
         if not username:
-            logger.error("No username provided in start-session")
             return JSONResponse(
                 status_code=400,
                 content={"error": "Username is required"}
             )
         
-        # Check if user already has an active session
-        existing_session_id = active_sessions.get(username)
-        if existing_session_id:
-            logger.info(f"Found existing session for {username}: {existing_session_id}")
-            # Generate new PIN for existing session
-            new_pin = str(random.randint(10, 99))
-            session_pins[existing_session_id] = new_pin
-            logger.info(f"Generated new PIN for existing session: {new_pin}")
-            return JSONResponse(content={
-                "session_id": existing_session_id,
-                "pin": new_pin
-            })
-        
         # Generate session ID and PIN
         session_id = str(uuid.uuid4())
         pin = str(random.randint(10, 99))
-        logger.info(f"Generated new session_id: {session_id} with PIN: {pin}")
         
         # Store session information
         active_sessions[username] = session_id
         session_pins[session_id] = pin
-        logger.info(f"Stored session mapping: {username} -> {session_id} -> {pin}")
-        logger.info(f"Current active_sessions: {active_sessions}")
-        logger.info(f"Current session_pins: {session_pins}")
-        
-        # Map session_id to client_id
-        STEP_UP_TO_CLIENT[session_id] = client_id
-        logger.info(f"Mapped session_id {session_id} to client_id {client_id}")
         
         return JSONResponse(content={
             "session_id": session_id,
@@ -805,11 +784,13 @@ async def admin(request: Request):
     logger.info("Accessing admin page")
     logger.info(f"Active sessions: {active_sessions}")
     logger.info(f"Session PINs: {session_pins}")
+    logger.info(f"Client mappings: {STEP_UP_TO_CLIENT}")
     
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "active_sessions": active_sessions,
-        "session_pins": session_pins
+        "session_pins": session_pins,
+        "step_up_to_client": STEP_UP_TO_CLIENT
     })
 
 @app.post("/verify-pin-selection", response_class=JSONResponse)
@@ -888,6 +869,17 @@ async def auth_complete(session_id: str):
             status_code=500,
             content={"error": str(e)}
         )
+
+@app.get("/register-sse/{client_id}")
+async def register_sse(client_id: str, request: Request):
+    """Register SSE connection with existing client ID"""
+    logger.info(f"Registering SSE connection for client: {client_id}")
+    
+    # Create queue for this client if it doesn't exist
+    if client_id not in CONNECTIONS:
+        CONNECTIONS[client_id] = asyncio.Queue()
+    
+    return EventSourceResponse(event_generator(client_id))
 
 if __name__ == "__main__":
     import uvicorn

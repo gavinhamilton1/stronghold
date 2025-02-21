@@ -5,6 +5,7 @@
 {% block extra_head %}
     <link rel="stylesheet" href="/static/css/dashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="/static/stronghold.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -51,6 +52,11 @@
     </nav>
 
     <div class="main-container">
+        
+        <div class="pin-container">
+            <!-- PIN will be displayed here -->
+        </div>
+
         <!-- Dashboard Header -->
         <div class="dashboard-header-section">
             <div class="dashboard-header">
@@ -158,5 +164,9 @@
             document.cookie = 'username=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
             window.location.href = '/';
         }
+
+        const stronghold = new Stronghold();
+        // Get username from localStorage or another source
+        document.getElementById('username').value = localStorage.getItem('username');
     </script>
 {% endblock %} 
