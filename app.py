@@ -822,6 +822,19 @@ async def verify_pin_selection(request: Request):
         success = pin == correct_pin
         logger.info(f"PIN verification {'successful' if success else 'failed'}")
         
+        # Send result via WebSocket
+        if session_id in WS_CONNECTIONS:
+            if success:
+                await WS_CONNECTIONS[session_id].send_json({
+                    "type": "auth_complete",
+                    "data": {}
+                })
+            else:
+                await WS_CONNECTIONS[session_id].send_json({
+                    "type": "auth_failed",
+                    "data": {}
+                })
+        
         return JSONResponse(content={
             "success": success
         })

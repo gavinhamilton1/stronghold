@@ -369,6 +369,8 @@ class Stronghold {
         const message = JSON.parse(event.data);
         if (message.type === 'auth_complete') {
           this.handleAuthComplete();
+        } else if (message.type === 'auth_failed') {
+          this.handleAuthFailed();
         }
       } catch (error) {
         console.error('Error processing message:', error);
