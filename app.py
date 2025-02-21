@@ -826,6 +826,46 @@ async def admin(request: Request):
         "session_pins": session_pins
     })
 
+@app.post("/verify-pin-selection", response_class=JSONResponse)
+async def verify_pin_selection(request: Request):
+    """Verify selected PIN against session PIN"""
+    try:
+        data = await request.json()
+        pin = str(data.get('pin'))
+        session_id = data.get('session_id')
+        
+        logger.info(f"Verifying PIN for session: {session_id}")
+        
+        if not session_id or not pin:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Missing pin or session_id"}
+            )
+        
+        # Get correct PIN for this session
+        correct_pin = session_pins.get(session_id)
+        
+        if not correct_pin:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Session not found"}
+            )
+        
+        # Compare PINs
+        success = pin == correct_pin
+        logger.info(f"PIN verification {'successful' if success else 'failed'}")
+        
+        return JSONResponse(content={
+            "success": success
+        })
+        
+    except Exception as e:
+        logger.error(f'Error verifying PIN: {str(e)}')
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Failed to verify PIN"}
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 
