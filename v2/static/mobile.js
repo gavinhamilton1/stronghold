@@ -226,7 +226,7 @@ class MobileStepUp {
             
             const data = await response.json();
             window.mobileDebug.log(`Got session ID: ${data.session_id}`);
-            const session_id = data.session_id;
+            this.sessionId = data.session_id;  // Store session ID in class
             
             // Send selected PIN to server for verification
             const verifyResponse = await fetch('/verify-pin-selection', {
@@ -236,7 +236,7 @@ class MobileStepUp {
                 },
                 body: JSON.stringify({
                     pin: pin,
-                    session_id: session_id
+                    session_id: this.sessionId
                 })
             });
             
@@ -349,20 +349,22 @@ class MobileStepUp {
 
     handleSuccessfulAuth() {
         try {
-            // Connect WebSocket if not already connected
-            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-                this.connectWebSocket();
-            }
-            
-            // Send auth complete message to update auth level
-            this.sendAuthComplete();
-            
             // Show success message
             const pinOptions = document.getElementById('pin-options');
-            pinOptions.innerHTML = '<div style="color: green; text-align: center; padding: 20px;">Authentication successful! Auth level upgraded to AAL3.</div>';
+            pinOptions.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h3 style="color: #28a745;">✓ Authentication Successful</h3>
+                    <p>You can now close this window and return to your browser.</p>
+                </div>
+            `;
             
-            // Show message input
-            document.getElementById('input-container').style.display = 'block';
+            // Send auth complete to server
+            fetch(`/auth-complete/${this.sessionId}`, {
+                method: 'POST'
+            }).catch(error => {
+                window.mobileDebug.error('Error sending auth complete:', error);
+            });
+            
         } catch (error) {
             window.mobileDebug.error('Error in handleSuccessfulAuth: ' + error);
             const pinOptions = document.getElementById('pin-options');
