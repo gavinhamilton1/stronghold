@@ -663,7 +663,6 @@ html, body {
 .container.payment-container {
     max-width: none;
     padding: 0;
-    background-color: #f0f1f1;
     min-height: 100vh;
 }
 

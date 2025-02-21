@@ -1,6 +1,6 @@
 const transactionData = [
     {
-        date: "Mar 15, 2024",
+        date: "Feb 15, 2025",
         description: "Transfer to Savings",
         account: "Checking ****4523",
         type: "Transfer",
@@ -8,7 +8,7 @@ const transactionData = [
         balance: 42382.43
     },
     {
-        date: "Mar 14, 2024",
+        date: "Feb 14, 2025",
         description: "Payroll Deposit",
         account: "Checking ****4523",
         type: "Deposit",
@@ -16,7 +16,7 @@ const transactionData = [
         balance: 47382.43
     },
     {
-        date: "Mar 13, 2024",
+        date: "Feb 13, 2025",
         description: "Interest Payment",
         account: "Savings ****7890",
         type: "Interest",
