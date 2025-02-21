@@ -13,7 +13,7 @@
         }
 
         .pin-container {
-            margin: 40px auto;
+            margin: 30px auto;
             text-align: center;
             align-items: center;
             justify-content: center;
@@ -81,6 +81,18 @@
         }
 
         const stronghold = new Stronghold();
+
+        function closeAuthOverlay() {
+            // Get the parent window (dashboard)
+            const parentWindow = window.parent;
+            if (parentWindow) {
+                // Find and hide the overlay in the parent window
+                const overlay = parentWindow.document.querySelector('.overlay');
+                if (overlay) {
+                    overlay.classList.remove('active');
+                }
+            }
+        }
 
         // Start session and display PIN
         async function initializeSession() {
