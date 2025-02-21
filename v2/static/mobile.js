@@ -420,7 +420,13 @@ class MobileStepUp {
         
         try {
             // Check for active session
-            const response = await fetch(`/join-session?username=${encodeURIComponent(username)}`);
+            const response = await fetch('/get-pin-options', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username })
+            });
             
             if (response.ok) {
                 // Session exists, show yes/no options
