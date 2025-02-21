@@ -189,16 +189,12 @@ class Stronghold {
         })
       });
 
-      if (!sessionResponse.ok) {
-        throw new Error('Failed to start session');
-      }
-
       const sessionData = await sessionResponse.json();
       console.log('Session started:', sessionData);
       this.sessionId = sessionData.session_id;
 
-      // Initialize SSE connection with session ID
-      await this.initializeSSE();
+      // Initialize WebSocket connection
+      await this.initializeWebSocket();
 
       // Clear any existing status
       const statusDiv = document.getElementById('status');
@@ -216,23 +212,20 @@ class Stronghold {
     }
   }
 
-  async initializeSSE() {
-    // Close existing SSE connection if any
-    if (this.eventSource) {
-      this.eventSource.close();
+  async initializeWebSocket() {
+    if (this.ws) {
+      this.ws.close();
     }
 
-    // Create new SSE connection
-    this.eventSource = new EventSource(`/register-sse/${this.sessionId}`);
-    console.log('SSE connection initialized with session ID:', this.sessionId);
+    this.ws = new WebSocket(`wss://${window.location.host}/ws/${this.sessionId}`);
+    console.log('WebSocket connection initialized with session ID:', this.sessionId);
 
-    // Add connection status logging
-    this.eventSource.onopen = () => {
-      console.log('SSE connection opened successfully');
+    this.ws.onopen = () => {
+      console.log('WebSocket connection opened successfully');
     };
     
-    this.eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
+    this.ws.onerror = (error) => {
+      console.error('WebSocket connection error:', error);
     };
 
     // Setup event listeners
@@ -370,39 +363,17 @@ class Stronghold {
   setupEventListeners() {
     console.log('Setting up event listeners');
     
-    // Log all incoming events
-    this.eventSource.onmessage = (event) => {
-      console.log('Raw SSE event received:', event);
-    };
-
-    // Listen for step-up initiation
-    this.eventSource.addEventListener('step_up_initiated', (event) => {
-      console.log('Received step-up initiated event:', event);
+    this.ws.onmessage = (event) => {
+      console.log('Message received:', event.data);
       try {
-        const data = JSON.parse(event.data);
-        const stepUpId = data.step_up_id || data;
-        console.log('Received step-up ID:', stepUpId);
-        this.handleStepUpInitiated(stepUpId);
-      } catch (error) {
-        console.error('Error processing step-up event:', error);
-      }
-    });
-
-    // Listen for mobile messages
-    this.eventSource.addEventListener('mobile_message', (event) => {
-      console.log('Received mobile message:', event);
-      this.handleMobileMessage(event.data);
-    });
-
-    // Listen for auth complete
-    this.eventSource.addEventListener('auth_complete', (event) => {
-        console.log('Received auth complete event');
-        try {
-            this.handleAuthComplete();
-        } catch (error) {
-            console.error('Error handling auth_complete:', error);
+        const message = JSON.parse(event.data);
+        if (message.type === 'auth_complete') {
+          this.handleAuthComplete();
         }
-    });
+      } catch (error) {
+        console.error('Error processing message:', error);
+      }
+    };
   }
 
   setupPollingEventHandlers() {
