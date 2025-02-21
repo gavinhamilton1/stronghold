@@ -9,10 +9,14 @@ body {
     font-family: 'Open Sans', sans-serif;
     background: #fff;
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    padding-bottom: 100px; /* Height of footer plus some padding */
 }
 
+/* Main content will push footer down */
+#content {
+    flex: 1 0 auto;
+}
 
 /* Hero section */
 .hero-section {
@@ -811,10 +815,15 @@ html, body {
 .site-footer {
     background: #f8f9fa;
     padding: 20px 0;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
 }
 
 .footer-links {
     display: flex;
+    justify-content: center;
     gap: 20px;
     margin-bottom: 15px;
 }
@@ -830,7 +839,9 @@ html, body {
     font-size: 12px;
     line-height: 1.4;
     text-align: center;
+    padding: 0 20px;
     max-width: 1400px;
+    margin: 0 auto;
 }
 
 /* Hero logo */
