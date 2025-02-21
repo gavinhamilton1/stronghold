@@ -838,25 +838,19 @@ async def auth_complete(session_id: str):
     """Handle auth completion from mobile"""
     try:
         logger.info(f"Processing auth complete for session: {session_id}")
-        logger.info(f"Current SSE connections: {list(CONNECTIONS.keys())}")
+        logger.info(f"Current WebSocket connections: {list(WS_CONNECTIONS.keys())}")
         
-        # Send via SSE if available
-        if session_id in CONNECTIONS:
-            logger.info(f"Sending auth_complete via SSE to session: {session_id}")
-            await CONNECTIONS[session_id].put({
-                "event": "auth_complete",
-                "data": "{}"
+        # Send via WebSocket if available
+        if session_id in WS_CONNECTIONS:
+            logger.info(f"Sending auth_complete via WebSocket to session: {session_id}")
+            await WS_CONNECTIONS[session_id].send_json({
+                "type": "auth_complete",
+                "data": {}
             })
-            logger.info("SSE message queued successfully")
+            logger.info("WebSocket message sent successfully")
         else:
-            logger.warning(f"No SSE connection found for session: {session_id}")
+            logger.warning(f"No WebSocket connection found for session: {session_id}")
             
-        # Also add to polling queue
-        logger.info(f"Adding auth_complete to polling queue for session: {session_id}")
-        POLLING_EVENTS[session_id].append({
-            "type": "auth_complete",
-            "data": None
-        })
         return JSONResponse(content={"status": "success"})
     except Exception as e:
         logger.error(f"Error completing auth: {str(e)}")
@@ -864,30 +858,6 @@ async def auth_complete(session_id: str):
             status_code=500,
             content={"error": str(e)}
         )
-
-@app.get("/register-sse/{session_id}")
-async def register_sse(session_id: str, request: Request):
-    """Register SSE connection with session ID"""
-    logger.info(f"Registering SSE connection for session: {session_id}")
-    
-    # Create queue for this session if it doesn't exist
-    if session_id not in CONNECTIONS:
-        CONNECTIONS[session_id] = asyncio.Queue()
-        logger.info(f"Created new queue for session: {session_id}")
-    
-    async def event_generator(session_id):
-        try:
-            while True:
-                # Wait for messages
-                message = await CONNECTIONS[session_id].get()
-                logger.info(f"Sending SSE message to session {session_id}: {message}")
-                yield message
-        except Exception as e:
-            logger.error(f"Error in SSE event generator: {e}")
-            if session_id in CONNECTIONS:
-                del CONNECTIONS[session_id]
-    
-    return EventSourceResponse(event_generator(session_id))
 
 if __name__ == "__main__":
     import uvicorn
