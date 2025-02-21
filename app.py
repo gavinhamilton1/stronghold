@@ -812,6 +812,14 @@ async def dashboard(request: Request):
         "show_footer": False
     })
 
+@app.get("/pincode", response_class=HTMLResponse)
+async def pincode(request: Request):
+    username = request.query_params.get('username')
+    return templates.TemplateResponse("pincode.html", {
+        "request": request,
+        "username": username
+    })
+
 @app.get("/admin", response_class=HTMLResponse)
 async def admin(request: Request):
     """Admin page showing active sessions"""
