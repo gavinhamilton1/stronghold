@@ -198,7 +198,7 @@ class Stronghold {
       this.sessionId = sessionData.session_id;
 
       // Initialize SSE connection with session ID
-      await this.initializeSSE(this.sessionId);
+      await this.initializeSSE();
 
       // Clear any existing status
       const statusDiv = document.getElementById('status');
@@ -216,15 +216,15 @@ class Stronghold {
     }
   }
 
-  async initializeSSE(clientId) {
+  async initializeSSE() {
     // Close existing SSE connection if any
     if (this.eventSource) {
       this.eventSource.close();
     }
 
     // Create new SSE connection
-    this.eventSource = new EventSource(`/register-sse/${clientId}`);
-    console.log('SSE connection initialized with client ID:', clientId);
+    this.eventSource = new EventSource(`/register-sse/${this.sessionId}`);
+    console.log('SSE connection initialized with session ID:', this.sessionId);
 
     // Setup event listeners
     this.setupEventListeners();

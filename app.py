@@ -859,16 +859,16 @@ async def auth_complete(session_id: str):
             content={"error": str(e)}
         )
 
-@app.get("/register-sse/{client_id}")
-async def register_sse(client_id: str, request: Request):
-    """Register SSE connection with existing client ID"""
-    logger.info(f"Registering SSE connection for client: {client_id}")
+@app.get("/register-sse/{session_id}")
+async def register_sse(session_id: str, request: Request):
+    """Register SSE connection with session ID"""
+    logger.info(f"Registering SSE connection for session: {session_id}")
     
-    # Create queue for this client if it doesn't exist
-    if client_id not in CONNECTIONS:
-        CONNECTIONS[client_id] = asyncio.Queue()
+    # Create queue for this session if it doesn't exist
+    if session_id not in CONNECTIONS:
+        CONNECTIONS[session_id] = asyncio.Queue()
     
-    return EventSourceResponse(event_generator(client_id))
+    return EventSourceResponse(event_generator(session_id))
 
 if __name__ == "__main__":
     import uvicorn
