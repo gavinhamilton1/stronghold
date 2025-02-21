@@ -65,8 +65,7 @@ class MobileStepUp {
             
             const data = await response.json();
             window.mobileDebug.log('API Response: ' + JSON.stringify(data));
-            // Get session_id from active_sessions
-            this.sessionId = data.session_id || active_sessions[username];
+            this.sessionId = data.session_id;
             window.mobileDebug.log(`Mobile: Joined session with ID: ${this.sessionId}`);
             
             const pinOptions = document.getElementById('pin-options');
@@ -76,11 +75,15 @@ class MobileStepUp {
             
             // Create buttons for each PIN
             if (pins && pins.length > 0) {
-                pinOptions.innerHTML = pins.map(pin => `
-                    <button class="pin-option" onclick="mobileStepUp.handlePinSelection(${pin})">
-                        ${pin}
-                    </button>
-                `).join('');
+                pinOptions.innerHTML = `
+                    <div class="pin-grid">
+                        ${pins.map(pin => `
+                            <button class="pin-option" onclick="mobileStepUp.handlePinSelection(${pin})">
+                                ${pin}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
             } else {
                 throw new Error('No PIN options received from server');
             }
