@@ -18,6 +18,7 @@ import hashlib
 from OpenSSL import SSL
 from datetime import datetime
 from starlette.middleware.base import BaseHTTPMiddleware
+from v2.routes.webauthn import router as webauthn_router
 
 app = FastAPI()
 
@@ -121,6 +122,9 @@ step_up_pins = {}  # Store PINs by step_up_id
 active_sessions = {}  # Store username -> session_id mapping
 session_pins = {}    # Store session_id -> PIN mapping
 
+# Mount WebAuthn routes
+app.include_router(webauthn_router, prefix="/api/webauthn")
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Serve main page"""
@@ -144,6 +148,10 @@ async def mobile(request: Request):
     """Serve webauthn page"""
     return templates.TemplateResponse("webauthn.html", {"request": request})
 
+@app.get("/webauthn")
+async def webauthn_page():
+    """Serve the WebAuthn registration page"""
+    return templates.TemplateResponse("webauthn.html", {"request": {}})
 
 @app.get("/register-sse")
 async def register_sse(request: Request):

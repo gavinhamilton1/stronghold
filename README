@@ -34,3 +34,7 @@ Open in browser:
     src="https://stronghold-test.onrender.com/?username=gavin" 
     style="width: 400px; height: 600px; border: none;">
 </iframe>
+
+Ref links
+Largeblob: https://www.w3.org/TR/webauthn-2/#sctn-large-blob-extension
+hmac: https://fidoalliance.org/specs/fido-v2.0-rd-20180702/fido-client-to-authenticator-protocol-v2.0-rd-20180702.html#sctn-hmac-secret-extension
