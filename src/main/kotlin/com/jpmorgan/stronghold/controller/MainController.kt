@@ -41,9 +41,9 @@ data class StorePayloadErrorResponse(
 @RestController
 @RequestMapping("/mobile-sign")
 @Tag(
-    name = "Authentication", 
+    name = "Mobile Signing",
     description = """
-        Mobile Authentication API
+        Mobile Signing API
         
         Flow:
         1. Start a session with POST /mobile-sign/start-session
