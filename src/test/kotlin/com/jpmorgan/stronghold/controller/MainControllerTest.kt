@@ -69,4 +69,41 @@ class MainControllerTest {
         assertThat(result.status).isEqualTo("success")
         verify { sessionService.deleteSession(sessionId) }
     }
+
+    @Test
+    fun `startSession creates new session with transaction data`() {
+        // Given
+        val request = StartSessionRequest(
+            username = "jsmith",
+            transaction = mapOf(
+                "id" to 12345,
+                "amount" to 100,
+                "currency" to "USD"
+            )
+        )
+
+        // When
+        val response = controller.startSession(request)
+
+        // Then
+        assertThat(response.sessionId).isNotEmpty()
+        assertThat(response.username).isEqualTo("jsmith")
+        assertThat(response.pin).matches("[0-9]{2}")
+        assertThat(response.transaction).isEqualTo(request.transaction)
+    }
+
+    @Test
+    fun `startSession works with null transaction`() {
+        // Given
+        val request = StartSessionRequest(username = "jsmith", transaction = null)
+
+        // When
+        val response = controller.startSession(request)
+
+        // Then
+        assertThat(response.sessionId).isNotEmpty()
+        assertThat(response.username).isEqualTo("jsmith")
+        assertThat(response.pin).matches("[0-9]{2}")
+        assertThat(response.transaction).isNull()
+    }
 } 

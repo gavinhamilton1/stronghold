@@ -4,6 +4,7 @@ plugins {
     kotlin("jvm") version "1.9.22"
     kotlin("plugin.spring") version "1.9.22"
     jacoco
+    kotlin("plugin.jpa") version "1.9.22"
 }
 
 group = "com.jpmorgan"
@@ -36,6 +37,10 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("io.mockk:mockk:1.13.9")
     testImplementation("org.assertj:assertj-core:3.24.2")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("com.h2database:h2:2.2.224")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
 }
 
 jacoco {

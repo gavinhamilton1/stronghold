@@ -97,4 +97,87 @@ class SessionServiceTest {
             sessionService.getPinOptions(session.sessionId)
         }
     }
+
+    @Test
+    fun `startSession creates new session with transaction data`() {
+        // Given
+        val username = "jsmith"
+        val transaction = mapOf(
+            "id" to 12345,
+            "amount" to 100,
+            "currency" to "USD"
+        )
+
+        // When
+        val session = sessionService.startSession(username, transaction)
+
+        // Then
+        assertThat(session.sessionId).isNotEmpty()
+        assertThat(session.username).isEqualTo(username)
+        assertThat(session.pin).matches("[0-9]{2}")
+        assertThat(session.transaction).isEqualTo(transaction)
+    }
+
+    @Test
+    fun `startSession creates new session without transaction`() {
+        // Given
+        val username = "jsmith"
+
+        // When
+        val session = sessionService.startSession(username)
+
+        // Then
+        assertThat(session.sessionId).isNotEmpty()
+        assertThat(session.username).isEqualTo(username)
+        assertThat(session.pin).matches("[0-9]{2}")
+        assertThat(session.transaction).isNull()
+    }
+
+    @Test
+    fun `verifyPin returns false for invalid session`() {
+        // Given
+        val verification = PinVerification(
+            sessionId = "invalid-session",
+            pin = "42"
+        )
+
+        // When
+        val result = sessionService.verifyPin(verification)
+
+        // Then
+        assertThat(result).isFalse()
+    }
+
+    @Test
+    fun `deleteSession removes session data`() {
+        // Given
+        val session = sessionService.startSession(
+            username = "jsmith",
+            transaction = mapOf("id" to 12345)
+        )
+
+        // When
+        sessionService.deleteSession(session.sessionId)
+
+        // Then
+        val verification = PinVerification(
+            sessionId = session.sessionId,
+            pin = session.pin
+        )
+        assertThat(sessionService.verifyPin(verification)).isFalse()
+    }
+
+    @Test
+    fun `getPinOptions includes actual PIN in options`() {
+        // Given
+        val session = sessionService.startSession("jsmith")
+
+        // When
+        val options = sessionService.getPinOptions(session.sessionId)
+
+        // Then
+        assertThat(options.pins).hasSize(3)
+        assertThat(options.pins).contains(session.pin)
+        assertThat(options.sessionId).isEqualTo(session.sessionId)
+    }
 } 
