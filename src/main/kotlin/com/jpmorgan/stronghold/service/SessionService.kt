@@ -22,9 +22,8 @@ class SessionService {
         return SessionInfo(sessionId, pin)
     }
 
-    fun getPinOptions(username: String): PinOptions {
-        val sessionId = activeSessions[username] ?: throw NoSuchElementException("No session found")
-        val correctPin = sessionPins[sessionId] ?: throw NoSuchElementException("No PIN found")
+    fun getPinOptions(sessionId: String): PinOptions {
+        val correctPin = sessionPins[sessionId] ?: throw NoSuchElementException("No session found")
         
         val pins = mutableSetOf(correctPin)
         while (pins.size < 3) {
@@ -37,5 +36,10 @@ class SessionService {
     fun verifyPin(verification: PinVerification): Boolean {
         val correctPin = sessionPins[verification.sessionId] ?: return false
         return verification.pin == correctPin
+    }
+
+    fun deleteSession(sessionId: String) {
+        sessionPins.remove(sessionId)
+        activeSessions.entries.removeIf { it.value == sessionId }
     }
 } 

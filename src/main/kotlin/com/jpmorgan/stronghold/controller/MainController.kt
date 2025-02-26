@@ -1,51 +1,69 @@
 package com.jpmorgan.stronghold.controller
 
-import com.jpmorgan.stronghold.model.PinOptions
-import com.jpmorgan.stronghold.model.PinVerification
-import com.jpmorgan.stronghold.model.SessionInfo
+import com.jpmorgan.stronghold.model.*
 import com.jpmorgan.stronghold.service.SessionService
-import org.springframework.stereotype.Controller
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.*
-import org.springframework.ui.Model
-
-@Controller
-class MainController(private val sessionService: SessionService) {
-    
-    @GetMapping("/")
-    fun index(): String = "index"
-    
-    @GetMapping("/pincode")
-    fun pincode(@RequestParam username: String, model: Model): String {
-        model.addAttribute("username", username)
-        return "pincode"
-    }
-    
-    @GetMapping("/dashboard")
-    fun dashboard(): String = "dashboard"
-    
-    @GetMapping("/payment")
-    fun payment(): String = "payment"
-}
 
 @RestController
 @RequestMapping("/api")
-class ApiController(private val sessionService: SessionService) {
+@Tag(name = "Authentication", description = "Authentication endpoints")
+class MainController(private val sessionService: SessionService) {
     
+    @Operation(
+        summary = "Start new session",
+        description = "Creates a new session for the given username"
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "Session created successfully"
+    )
     @PostMapping("/start-session")
-    fun startSession(@RequestBody request: Map<String, String>): SessionInfo {
-        val username = request["username"] ?: throw IllegalArgumentException("Username required")
-        return sessionService.startSession(username)
+    fun startSession(
+        @Parameter(description = "Session start request")
+        @RequestBody request: StartSessionRequest
+    ): SessionInfo {
+        return sessionService.startSession(request.username)
     }
     
+    @Operation(
+        summary = "Get PIN options",
+        description = "Returns available PIN options for the given session"
+    )
     @PostMapping("/get-pin-options")
-    fun getPinOptions(@RequestBody request: Map<String, String>): PinOptions {
-        val username = request["username"] ?: throw IllegalArgumentException("Username required")
-        return sessionService.getPinOptions(username)
+    fun getPinOptions(
+        @Parameter(description = "PIN options request")
+        @RequestBody request: PinOptionsRequest
+    ): PinOptions {
+        return sessionService.getPinOptions(request.sessionId)
     }
     
+    @Operation(
+        summary = "Verify PIN selection",
+        description = "Verifies if the selected PIN is correct"
+    )
     @PostMapping("/verify-pin-selection")
-    fun verifyPinSelection(@RequestBody verification: PinVerification): Map<String, Boolean> {
+    fun verifyPinSelection(
+        @Parameter(description = "PIN verification request")
+        @RequestBody verification: PinVerification
+    ): PinVerificationResponse {
         val success = sessionService.verifyPin(verification)
-        return mapOf("success" to success)
+        return PinVerificationResponse(success)
+    }
+
+    @Operation(
+        summary = "Delete session",
+        description = "Deletes an existing session"
+    )
+    @DeleteMapping("/sessions/{sessionId}")
+    fun deleteSession(
+        @Parameter(description = "Session ID to delete")
+        @PathVariable sessionId: String
+    ): DeleteSessionResponse {
+        sessionService.deleteSession(sessionId)
+        return DeleteSessionResponse("success")
     }
 } 
