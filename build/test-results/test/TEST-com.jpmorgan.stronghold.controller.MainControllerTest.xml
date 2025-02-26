@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.jpmorgan.stronghold.controller.MainControllerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-02-26T01:42:52" hostname="Gavins-MBP" time="0.292">
+  <properties/>
+  <testcase name="getPinOptions calls service and returns options()" classname="com.jpmorgan.stronghold.controller.MainControllerTest" time="0.238"/>
+  <testcase name="deleteSession calls service and returns success response()" classname="com.jpmorgan.stronghold.controller.MainControllerTest" time="0.015"/>
+  <testcase name="verifyPinSelection calls service and returns response()" classname="com.jpmorgan.stronghold.controller.MainControllerTest" time="0.008"/>
+  <testcase name="startSession calls service and returns session info()" classname="com.jpmorgan.stronghold.controller.MainControllerTest" time="0.028"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

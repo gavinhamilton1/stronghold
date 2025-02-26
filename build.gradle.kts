@@ -3,6 +3,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.4"
     kotlin("jvm") version "1.9.22"
     kotlin("plugin.spring") version "1.9.22"
+    jacoco
 }
 
 group = "com.jpmorgan"
@@ -20,6 +21,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
     implementation("org.webjars:webjars-locator-core")
@@ -27,6 +30,62 @@ dependencies {
     implementation("org.webjars:stomp-websocket:2.3.3")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
     implementation("org.springdoc:springdoc-openapi-starter-common:2.3.0")
+    implementation("io.swagger.core.v3:swagger-annotations:2.2.20")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("io.mockk:mockk:1.13.9")
+    testImplementation("org.assertj:assertj-core:3.24.2")
+}
+
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+tasks.test {
+    useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+    
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = true
+        
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
+
+    reports {
+        html.required.set(true)
+        junitXml.required.set(true)
+    }
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        csv.required.set(false)
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco"))
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.8".toBigDecimal()
+            }
+        }
+    }
+}
+
+sourceSets {
+    test {
+        kotlin {
+            srcDirs("src/test/kotlin")
+        }
+    }
 } 

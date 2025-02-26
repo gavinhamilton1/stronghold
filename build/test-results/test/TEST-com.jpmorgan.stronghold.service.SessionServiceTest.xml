@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.jpmorgan.stronghold.service.SessionServiceTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2025-02-26T01:42:52" hostname="Gavins-MBP" time="0.045">
+  <properties/>
+  <testcase name="verifyPin returns false for incorrect PIN()" classname="com.jpmorgan.stronghold.service.SessionServiceTest" time="0.007"/>
+  <testcase name="verifyPin returns true for correct PIN()" classname="com.jpmorgan.stronghold.service.SessionServiceTest" time="0.001"/>
+  <testcase name="getPinOptions throws exception for invalid session()" classname="com.jpmorgan.stronghold.service.SessionServiceTest" time="0.01"/>
+  <testcase name="startSession creates new session with PIN()" classname="com.jpmorgan.stronghold.service.SessionServiceTest" time="0.001"/>
+  <testcase name="verifyPin returns false for invalid session()" classname="com.jpmorgan.stronghold.service.SessionServiceTest" time="0.0"/>
+  <testcase name="getPinOptions returns correct number of options including actual PIN()" classname="com.jpmorgan.stronghold.service.SessionServiceTest" time="0.018"/>
+  <testcase name="deleteSession removes session and PIN()" classname="com.jpmorgan.stronghold.service.SessionServiceTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

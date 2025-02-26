@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WebSocketHandler.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">StrongholdWeb</a> &gt; <a href="index.source.html" class="el_package">com.jpmorgan.stronghold.websocket</a> &gt; <span class="el_source">WebSocketHandler.kt</span></div><h1>WebSocketHandler.kt</h1><pre class="source lang-java linenums">package com.jpmorgan.stronghold.websocket
+
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.jpmorgan.stronghold.model.WebSocketMessage
+import com.jpmorgan.stronghold.annotation.TestVisible
+import org.springframework.web.socket.TextMessage
+import org.springframework.web.socket.WebSocketSession
+import org.springframework.web.socket.handler.TextWebSocketHandler
+import org.springframework.web.socket.CloseStatus
+
+<span class="fc" id="L11">class WebSocketHandler : TextWebSocketHandler() {</span>
+<span class="fc" id="L12">    private val sessions = mutableMapOf&lt;String, WebSocketSession&gt;()</span>
+<span class="fc" id="L13">    private val mapper = jacksonObjectMapper()</span>
+
+    @TestVisible
+    override fun afterConnectionEstablished(session: WebSocketSession) {
+<span class="pc bpc" id="L17" title="2 of 4 branches missed.">        val stepUpId = session.uri?.path?.substringAfterLast(&quot;/&quot;)</span>
+<span class="pc bpc" id="L18" title="1 of 2 branches missed.">        if (stepUpId != null) {</span>
+<span class="fc" id="L19">            sessions[stepUpId] = session</span>
+        }
+<span class="fc" id="L21">    }</span>
+
+    @TestVisible
+    override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
+<span class="fc" id="L25">        val msg = mapper.readValue(message.payload, WebSocketMessage::class.java)</span>
+<span class="pc bpc" id="L26" title="1 of 2 branches missed.">        if (msg.type == &quot;auth_complete&quot;) {</span>
+<span class="fc" id="L27">            session.sendMessage(TextMessage(mapper.writeValueAsString(</span>
+<span class="fc" id="L28">                WebSocketMessage(&quot;auth_complete&quot;, null)</span>
+            )))
+        }
+<span class="fc" id="L31">    }</span>
+
+    override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
+<span class="pc bpc" id="L34" title="2 of 4 branches missed.">        val stepUpId = session.uri?.path?.substringAfterLast(&quot;/&quot;)</span>
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">        if (stepUpId != null) {</span>
+<span class="fc" id="L36">            sessions.remove(stepUpId)</span>
+        }
+<span class="fc" id="L38">    }</span>
+
+    // Helper method for tests
+    internal fun handleMessage(session: WebSocketSession, message: TextMessage) {
+<span class="fc" id="L42">        handleTextMessage(session, message)</span>
+<span class="fc" id="L43">    }</span>
+} 
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
