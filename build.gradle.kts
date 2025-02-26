@@ -41,6 +41,10 @@ dependencies {
     implementation("com.h2database:h2:2.2.224")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine")
+    testImplementation("org.assertj:assertj-core")
 }
 
 jacoco {

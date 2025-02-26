@@ -5,17 +5,71 @@ import com.jpmorgan.stronghold.service.SessionService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.time.Instant
+import java.util.NoSuchElementException
 
-<span class="fc" id="L11">@RestController</span>
-@RequestMapping(&quot;/api&quot;)
-@Tag(name = &quot;Authentication&quot;, description = &quot;Authentication endpoints&quot;)
-<span class="fc" id="L14">class MainController(private val sessionService: SessionService) {</span>
+<span class="fc" id="L17">@Schema(description = &quot;Store payload response&quot;)</span>
+<span class="fc" id="L18">data class StorePayloadResponse(</span>
+<span class="fc" id="L19">    @Schema(description = &quot;Status of the operation&quot;, example = &quot;success&quot;)</span>
+<span class="fc" id="L20">    val status: String</span>
+)
+
+<span class="fc" id="L23">@Schema(description = &quot;User code options error response&quot;)</span>
+<span class="fc" id="L24">data class UserCodeOptionsErrorResponse(</span>
+<span class="fc" id="L25">    @Schema(description = &quot;Error status&quot;, example = &quot;error&quot;)</span>
+<span class="fc" id="L26">    val status: String,</span>
+    
+<span class="fc" id="L28">    @Schema(description = &quot;Error message&quot;, example = &quot;User code options only available for PIN_2D authentication type&quot;)</span>
+<span class="fc" id="L29">    val message: String</span>
+)
+
+<span class="fc" id="L32">@Schema(description = &quot;Store payload error response&quot;)</span>
+<span class="fc" id="L33">data class StorePayloadErrorResponse(</span>
+<span class="fc" id="L34">    @Schema(description = &quot;Error status&quot;, example = &quot;error&quot;)</span>
+<span class="fc" id="L35">    val status: String,</span>
+    
+<span class="fc" id="L37">    @Schema(description = &quot;Error message&quot;, example = &quot;Cannot store payload: user code has not been verified&quot;)</span>
+<span class="fc" id="L38">    val message: String</span>
+)
+
+<span class="fc" id="L41">@RestController</span>
+@RequestMapping(&quot;/mobile-sign&quot;)
+@Tag(
+    name = &quot;Authentication&quot;, 
+    description = &quot;&quot;&quot;
+        Mobile Authentication API
+        
+        Flow:
+        1. Start a session with POST /mobile-sign/start-session
+           - Choose auth type: QR_CODE, USER_CODE, PIN_2D, PIN_8D, or SILENT
+           - For PIN_2D, proceed to step 2
+           - For SILENT, skip to step 4
+           - For other types, proceed to step 3
+        
+        2. For PIN_2D auth type only:
+           - Get PIN options with GET /mobile-sign/sessions/{sessionId}/user-code-options
+           - User selects one of the three 2-digit PINs
+        
+        3. Verify the user code with POST /mobile-sign/verify-user-code
+           - Must be verified before storing payload (except SILENT type)
+        
+        4. Store the signed payload with POST /mobile-sign/store-payload
+           - For non-SILENT auth types, requires prior user code verification
+        
+        Note: Session can be deleted at any time with DELETE /mobile-sign/sessions/{sessionId}
+    &quot;&quot;&quot;
+)
+<span class="fc" id="L68">class MainController(private val sessionService: SessionService) {</span>
     
     @Operation(
         summary = &quot;Start new session&quot;,
-        description = &quot;Creates a new session for the given username&quot;
+        description = &quot;Creates a new session for the given subject ID&quot;
     )
     @ApiResponse(
         responseCode = &quot;200&quot;,
@@ -26,32 +80,63 @@ import org.springframework.web.bind.annotation.*
         @Parameter(description = &quot;Session start request&quot;)
         @RequestBody request: StartSessionRequest
     ): SessionInfo {
-<span class="fc" id="L29">        return sessionService.startSession(request.username)</span>
+<span class="fc" id="L83">        return sessionService.startSession(request.subjectId, request.type, request.transaction)</span>
     }
     
     @Operation(
-        summary = &quot;Get PIN options&quot;,
-        description = &quot;Returns available PIN options for the given session&quot;
+        summary = &quot;Get user code options&quot;,
+        description = &quot;Returns available 2-digit PIN options for PIN_2D sessions&quot;
     )
-    @PostMapping(&quot;/get-pin-options&quot;)
-    fun getPinOptions(
-        @Parameter(description = &quot;PIN options request&quot;)
-        @RequestBody request: PinOptionsRequest
-    ): PinOptions {
-<span class="fc" id="L41">        return sessionService.getPinOptions(request.sessionId)</span>
+    @ApiResponse(
+        responseCode = &quot;200&quot;,
+        description = &quot;Successfully retrieved options&quot;,
+        content = [
+            Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = UserCodeOptions::class)
+            )
+        ]
+    )
+    @ApiResponse(
+        responseCode = &quot;400&quot;,
+        description = &quot;Invalid session type - options only available for PIN_2D&quot;,
+        content = [
+            Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = UserCodeOptionsErrorResponse::class)
+            )
+        ]
+    )
+    @GetMapping(&quot;/sessions/{sessionId}/user-code-options&quot;)
+    fun getUserCodeOptions(
+        @Parameter(description = &quot;Session ID to get user code options for&quot;)
+        @PathVariable sessionId: String
+    ): ResponseEntity&lt;Any&gt; {
+<span class="fc" id="L115">        return try {</span>
+<span class="fc" id="L116">            val options = sessionService.getUserCodeOptions(sessionId)</span>
+<span class="fc" id="L117">            ResponseEntity.ok(options)</span>
+<span class="fc" id="L118">        } catch (e: IllegalStateException) {</span>
+<span class="fc" id="L119">            ResponseEntity.badRequest().body(UserCodeOptionsErrorResponse(</span>
+<span class="fc" id="L120">                status = &quot;error&quot;,</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">                message = e.message ?: &quot;Invalid request&quot;</span>
+            ))
+        }
     }
     
     @Operation(
-        summary = &quot;Verify PIN selection&quot;,
-        description = &quot;Verifies if the selected PIN is correct&quot;
+        summary = &quot;Verify user code selection&quot;,
+        description = &quot;Verifies if the selected user code is correct&quot;
     )
-    @PostMapping(&quot;/verify-pin-selection&quot;)
-    fun verifyPinSelection(
-        @Parameter(description = &quot;PIN verification request&quot;)
-        @RequestBody verification: PinVerification
-    ): PinVerificationResponse {
-<span class="fc" id="L53">        val success = sessionService.verifyPin(verification)</span>
-<span class="fc" id="L54">        return PinVerificationResponse(success)</span>
+    @PostMapping(&quot;/verify-user-code&quot;)
+    fun verifyUserCodeSelection(
+        @Parameter(description = &quot;User code verification request&quot;)
+        @RequestBody verification: UserCodeVerification
+    ): UserCodeVerificationResponse {
+<span class="fc" id="L135">        val success = sessionService.verifyUserCode(verification)</span>
+<span class="fc" id="L136">        return UserCodeVerificationResponse(</span>
+<span class="fc" id="L137">            success = success,</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">            verifiedAt = if (success) Instant.now() else null</span>
+        )
     }
 
     @Operation(
@@ -63,8 +148,53 @@ import org.springframework.web.bind.annotation.*
         @Parameter(description = &quot;Session ID to delete&quot;)
         @PathVariable sessionId: String
     ): DeleteSessionResponse {
-<span class="fc" id="L66">        sessionService.deleteSession(sessionId)</span>
-<span class="fc" id="L67">        return DeleteSessionResponse(&quot;success&quot;)</span>
+<span class="fc" id="L151">        sessionService.deleteSession(sessionId)</span>
+<span class="fc" id="L152">        return DeleteSessionResponse(&quot;success&quot;)</span>
+    }
+
+    @Operation(
+        summary = &quot;Store signed payload&quot;,
+        description = &quot;Stores the signed JWT payload for the given session. Requires verified user code except for SILENT auth type.&quot;
+    )
+    @ApiResponse(
+        responseCode = &quot;200&quot;,
+        description = &quot;Successfully stored payload&quot;,
+        content = [
+            Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = StorePayloadResponse::class)
+            )
+        ]
+    )
+    @ApiResponse(
+        responseCode = &quot;400&quot;,
+        description = &quot;Invalid request - user code not verified&quot;,
+        content = [
+            Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = Schema(implementation = StorePayloadErrorResponse::class)
+            )
+        ]
+    )
+    @PostMapping(&quot;/store-payload&quot;)
+    fun storeSignedPayload(
+        @Parameter(description = &quot;Signed payload request&quot;)
+        @RequestBody request: SignedPayloadRequest
+    ): ResponseEntity&lt;Any&gt; {
+<span class="fc" id="L184">        return try {</span>
+<span class="fc" id="L185">            sessionService.storeSignedPayload(request.sessionId, request.signedPayload)</span>
+<span class="fc" id="L186">            ResponseEntity.ok(StorePayloadResponse(&quot;success&quot;))</span>
+<span class="fc" id="L187">        } catch (e: IllegalStateException) {</span>
+<span class="fc" id="L188">            ResponseEntity.badRequest().body(StorePayloadErrorResponse(</span>
+<span class="fc" id="L189">                status = &quot;error&quot;,</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">                message = e.message ?: &quot;Invalid request&quot;</span>
+            ))
+<span class="pc" id="L192">        } catch (e: NoSuchElementException) {</span>
+<span class="nc" id="L193">            ResponseEntity.badRequest().body(StorePayloadErrorResponse(</span>
+<span class="nc" id="L194">                status = &quot;error&quot;,</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">                message = e.message ?: &quot;Session not found&quot;</span>
+            ))
+        }
     }
 } 
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

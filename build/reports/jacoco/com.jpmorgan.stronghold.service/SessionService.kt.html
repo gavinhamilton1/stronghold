@@ -1,46 +1,149 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SessionService.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">StrongholdWeb</a> &gt; <a href="index.source.html" class="el_package">com.jpmorgan.stronghold.service</a> &gt; <span class="el_source">SessionService.kt</span></div><h1>SessionService.kt</h1><pre class="source lang-java linenums">package com.jpmorgan.stronghold.service
 
-import com.jpmorgan.stronghold.model.PinOptions
-import com.jpmorgan.stronghold.model.PinVerification
 import com.jpmorgan.stronghold.model.SessionInfo
+import com.jpmorgan.stronghold.model.UserCodeOptions
+import com.jpmorgan.stronghold.model.UserCodeVerification
 import org.springframework.stereotype.Service
 import java.util.*
 import kotlin.random.Random
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.jpmorgan.stronghold.entity.SessionEntity
+import com.jpmorgan.stronghold.repository.SessionRepository
+import mu.KotlinLogging
+import org.springframework.transaction.annotation.Transactional
+import com.jpmorgan.stronghold.model.AuthType
+import java.time.Instant
 
-<span class="fc" id="L10">@Service</span>
-<span class="fc" id="L11">class SessionService {</span>
-<span class="fc" id="L12">    private val activeSessions = mutableMapOf&lt;String, String&gt;() // username -&gt; sessionId</span>
-<span class="fc" id="L13">    private val sessionPins = mutableMapOf&lt;String, String&gt;() // sessionId -&gt; pin</span>
+<span class="pc" id="L17">private val logger = KotlinLogging.logger {}</span>
 
-    fun startSession(username: String): SessionInfo {
-<span class="fc" id="L16">        val sessionId = UUID.randomUUID().toString()</span>
-<span class="fc" id="L17">        val pin = Random.nextInt(10, 100).toString()</span>
-        
-<span class="fc" id="L19">        activeSessions[username] = sessionId</span>
-<span class="fc" id="L20">        sessionPins[sessionId] = pin</span>
-        
-<span class="fc" id="L22">        return SessionInfo(sessionId, pin)</span>
-    }
-
-    fun getPinOptions(sessionId: String): PinOptions {
-<span class="fc bfc" id="L26" title="All 2 branches covered.">        val correctPin = sessionPins[sessionId] ?: throw NoSuchElementException(&quot;No session found&quot;)</span>
-        
-<span class="fc" id="L28">        val pins = mutableSetOf(correctPin)</span>
-<span class="fc bfc" id="L29" title="All 2 branches covered.">        while (pins.size &lt; 3) {</span>
-<span class="fc" id="L30">            pins.add(Random.nextInt(10, 100).toString())</span>
+<span class="fc" id="L19">@Service</span>
+<span class="fc" id="L20">class SessionService(</span>
+<span class="fc" id="L21">    private val sessionRepository: SessionRepository,</span>
+<span class="fc" id="L22">    private val objectMapper: ObjectMapper</span>
+) {
+    @Transactional
+<span class="nc" id="L25">    fun startSession(subjectId: String, type: AuthType, transaction: Map&lt;String, Any&gt;? = null): SessionInfo {</span>
+<span class="fc" id="L26">        val sessionId = UUID.randomUUID().toString()</span>
+<span class="pc bpc" id="L27" title="4 of 5 branches missed.">        val userCode = when (type) {</span>
+<span class="nc" id="L28">            AuthType.QR_CODE -&gt; UUID.randomUUID().toString()</span>
+<span class="nc" id="L29">            AuthType.USER_CODE -&gt; generateSixDigitCode()</span>
+<span class="fc" id="L30">            AuthType.PIN_2D -&gt; generateTwoDigitCode()</span>
+<span class="nc" id="L31">            AuthType.PIN_8D -&gt; generateEightDigitCode()</span>
+<span class="nc" id="L32">            AuthType.SILENT -&gt; null</span>
         }
         
-<span class="fc" id="L33">        return PinOptions(pins.shuffled(), sessionId)</span>
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">        val transactionJson = transaction?.let { </span>
+<span class="nc" id="L36">            try {</span>
+<span class="nc" id="L37">                objectMapper.writeValueAsString(it)</span>
+<span class="nc" id="L38">            } catch (e: Exception) {</span>
+<span class="nc" id="L39">                logger.error(e) { &quot;Failed to serialize transaction data&quot; }</span>
+<span class="nc" id="L40">                null</span>
+            }
+        }
+        
+<span class="fc" id="L44">        logger.info { &quot;Creating new session: id=$sessionId, subjectId=$subjectId, type=$type&quot; }</span>
+        
+<span class="fc" id="L46">        val sessionEntity = SessionEntity(</span>
+<span class="fc" id="L47">            sessionId = sessionId,</span>
+<span class="fc" id="L48">            subjectId = subjectId,</span>
+<span class="fc" id="L49">            userCode = userCode,</span>
+<span class="fc" id="L50">            authType = type,</span>
+<span class="fc" id="L51">            transactionData = transactionJson</span>
+        )
+        
+<span class="fc" id="L54">        try {</span>
+<span class="fc" id="L55">            val saved = sessionRepository.save(sessionEntity)</span>
+<span class="fc" id="L56">            logger.info { &quot;Successfully saved session: ${saved.sessionId}&quot; }</span>
+<span class="nc" id="L57">        } catch (e: Exception) {</span>
+<span class="nc" id="L58">            logger.error(e) { &quot;Failed to save session to database&quot; }</span>
+<span class="nc" id="L59">            throw e</span>
+        }
+        
+<span class="fc" id="L62">        return SessionInfo(</span>
+<span class="fc" id="L63">            sessionId = sessionId,</span>
+<span class="fc" id="L64">            userCode = userCode,</span>
+<span class="fc" id="L65">            subjectId = subjectId,</span>
+<span class="fc" id="L66">            transaction = transaction,</span>
+<span class="fc" id="L67">            userCodeVerified = false,</span>
+<span class="fc" id="L68">            userCodeVerifiedAt = null</span>
+        )
     }
 
-    fun verifyPin(verification: PinVerification): Boolean {
-<span class="fc bfc" id="L37" title="All 2 branches covered.">        val correctPin = sessionPins[verification.sessionId] ?: return false</span>
-<span class="fc" id="L38">        return verification.pin == correctPin</span>
+    fun getUserCodeOptions(sessionId: String): UserCodeOptions {
+<span class="fc" id="L73">        val session = sessionRepository.findById(sessionId)</span>
+<span class="pc" id="L74">            .orElseThrow { NoSuchElementException(&quot;No session found&quot;) }</span>
+        
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (session.authType != AuthType.PIN_2D) {</span>
+<span class="fc" id="L77">            throw IllegalStateException(&quot;User code options only available for PIN_2D authentication type&quot;)</span>
+        }
+        
+<span class="fc" id="L80">        val codes = mutableSetOf&lt;String&gt;()</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">        session.userCode?.let { codes.add(it) }</span>
+        
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        while (codes.size &lt; 3) {</span>
+<span class="fc" id="L84">            codes.add(generateTwoDigitCode())</span>
+        }
+        
+<span class="fc" id="L87">        return UserCodeOptions(codes.shuffled(), sessionId)</span>
+    }
+
+    @Transactional
+    fun verifyUserCode(verification: UserCodeVerification): Boolean {
+<span class="fc" id="L92">        return sessionRepository.findById(verification.sessionId)</span>
+<span class="fc" id="L93">            .map { session -&gt; </span>
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">                val isValid = if (session.userCode == null) false</span>
+<span class="fc" id="L95">                             else session.userCode == verification.userCode</span>
+                
+<span class="fc bfc" id="L97" title="All 2 branches covered.">                if (isValid) {</span>
+<span class="fc" id="L98">                    session.userCodeVerified = true</span>
+<span class="fc" id="L99">                    session.userCodeVerifiedAt = Instant.now()</span>
+<span class="fc" id="L100">                    sessionRepository.save(session)</span>
+<span class="fc" id="L101">                    logger.info { &quot;User code verified successfully for session: ${session.sessionId}&quot; }</span>
+                } else {
+<span class="fc" id="L103">                    logger.info { &quot;User code verification failed for session: ${session.sessionId}&quot; }</span>
+                }
+                
+<span class="fc" id="L106">                isValid</span>
+            }
+<span class="fc" id="L108">            .orElse(false)</span>
+    }
+
+    private fun generateTwoDigitCode(): String = 
+<span class="fc" id="L112">        String.format(&quot;%02d&quot;, Random.nextInt(0, 100))</span>
+
+    private fun generateSixDigitCode(): String = 
+<span class="nc" id="L115">        String.format(&quot;%06d&quot;, Random.nextInt(0, 1000000))</span>
+
+    private fun generateEightDigitCode(): String = 
+<span class="nc" id="L118">        String.format(&quot;%08d&quot;, Random.nextInt(0, 100000000))</span>
+
+    private fun generateUserCode(): String {
+<span class="nc" id="L121">        return String.format(&quot;%08d&quot;, Random.nextInt(0, 100000000))</span>
     }
 
     fun deleteSession(sessionId: String) {
-<span class="fc" id="L42">        sessionPins.remove(sessionId)</span>
-<span class="fc" id="L43">        activeSessions.entries.removeIf { it.value == sessionId }</span>
-<span class="fc" id="L44">    }</span>
+<span class="fc" id="L125">        sessionRepository.deleteById(sessionId)</span>
+<span class="fc" id="L126">    }</span>
+
+    @Transactional
+    fun storeSignedPayload(sessionId: String, signedPayload: String) {
+<span class="fc" id="L130">        logger.info { &quot;Storing signed payload for session: $sessionId&quot; }</span>
+        
+<span class="fc" id="L132">        val session = sessionRepository.findById(sessionId)</span>
+<span class="pc" id="L133">            .orElseThrow { NoSuchElementException(&quot;No session found for ID: $sessionId&quot;) }</span>
+        
+<span class="fc bfc" id="L135" title="All 4 branches covered.">        if (session.authType != AuthType.SILENT &amp;&amp; !session.userCodeVerified) {</span>
+<span class="fc" id="L136">            throw IllegalStateException(&quot;Cannot store payload: user code has not been verified&quot;)</span>
+        }
+        
+<span class="fc" id="L139">        try {</span>
+<span class="fc" id="L140">            session.signedPayload = signedPayload</span>
+<span class="fc" id="L141">            sessionRepository.save(session)</span>
+<span class="fc" id="L142">            logger.info { &quot;Successfully stored signed payload for session: $sessionId&quot; }</span>
+<span class="nc" id="L143">        } catch (e: Exception) {</span>
+<span class="nc" id="L144">            logger.error(e) { &quot;Failed to store signed payload for session: $sessionId&quot; }</span>
+<span class="nc" id="L145">            throw e</span>
+        }
+<span class="fc" id="L147">    }</span>
 } 
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

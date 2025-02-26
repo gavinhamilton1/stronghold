@@ -1,66 +1,136 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Models.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">StrongholdWeb</a> &gt; <a href="index.source.html" class="el_package">com.jpmorgan.stronghold.model</a> &gt; <span class="el_source">Models.kt</span></div><h1>Models.kt</h1><pre class="source lang-java linenums">package com.jpmorgan.stronghold.model
 
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.Instant
 
-<span class="fc" id="L5">@Schema(description = &quot;Session information&quot;)</span>
-<span class="fc" id="L6">data class SessionInfo(</span>
-<span class="fc" id="L7">    @Schema(description = &quot;Unique session identifier&quot;, example = &quot;123e4567-e89b-12d3-a456-426614174000&quot;)</span>
-<span class="fc" id="L8">    val sessionId: String,</span>
+enum class AuthType {
+<span class="fc" id="L7">    QR_CODE,</span>
+<span class="fc" id="L8">    USER_CODE,</span>
+<span class="fc" id="L9">    PIN_2D,</span>
+<span class="fc" id="L10">    PIN_8D,</span>
+<span class="fc" id="L11">    SILENT</span>
+}
+
+<span class="fc" id="L14">@Schema(description = &quot;Session information&quot;)</span>
+<span class="fc" id="L15">data class SessionInfo(</span>
+<span class="fc" id="L16">    @Schema(description = &quot;Unique session identifier&quot;, example = &quot;123e4567-e89b-12d3-a456-426614174000&quot;)</span>
+<span class="fc" id="L17">    val sessionId: String,</span>
     
-<span class="fc" id="L10">    @Schema(description = &quot;Two-digit PIN code&quot;, example = &quot;42&quot;)</span>
-<span class="fc" id="L11">    val pin: String</span>
-)
-
-<span class="fc" id="L14">@Schema(description = &quot;PIN verification request&quot;)</span>
-<span class="fc" id="L15">data class PinVerification(</span>
-<span class="fc" id="L16">    @Schema(description = &quot;PIN to verify&quot;, example = &quot;42&quot;)</span>
-<span class="fc" id="L17">    val pin: String,</span>
+<span class="fc" id="L19">    @Schema(description = &quot;User code (null for SILENT type)&quot;, </span>
+           example = &quot;12345678&quot;, 
+           nullable = true)
+<span class="fc" id="L22">    val userCode: String?,</span>
     
-<span class="fc" id="L19">    @Schema(description = &quot;Session ID&quot;, example = &quot;123e4567-e89b-12d3-a456-426614174000&quot;)</span>
-<span class="fc" id="L20">    val sessionId: String</span>
-)
-
-<span class="fc" id="L23">@Schema(description = &quot;Available PIN options&quot;)</span>
-<span class="fc" id="L24">data class PinOptions(</span>
-<span class="fc" id="L25">    @Schema(description = &quot;List of PIN options&quot;, example = &quot;[\&quot;42\&quot;, \&quot;13\&quot;, \&quot;87\&quot;]&quot;)</span>
-<span class="fc" id="L26">    val pins: List&lt;String&gt;,</span>
+<span class="fc" id="L24">    @Schema(description = &quot;Subject identifier&quot;, example = &quot;user123&quot;)</span>
+<span class="fc" id="L25">    val subjectId: String,</span>
     
-<span class="fc" id="L28">    @Schema(description = &quot;Session ID&quot;, example = &quot;123e4567-e89b-12d3-a456-426614174000&quot;)</span>
-<span class="fc" id="L29">    val sessionId: String</span>
-)
-
-<span class="fc" id="L32">@Schema(description = &quot;WebSocket message&quot;)</span>
-<span class="fc" id="L33">data class WebSocketMessage(</span>
-<span class="fc" id="L34">    @Schema(description = &quot;Message type&quot;, example = &quot;auth_complete&quot;)</span>
-<span class="fc" id="L35">    val type: String,</span>
+<span class="fc" id="L27">    @Schema(description = &quot;Transaction details&quot;, example = &quot;{\&quot;id\&quot;: 12345, \&quot;amount\&quot;: 100, \&quot;currency\&quot;: \&quot;USD\&quot;}&quot;)</span>
+<span class="fc" id="L28">    val transaction: Map&lt;String, Any&gt;?,</span>
     
-<span class="fc" id="L37">    @Schema(description = &quot;Optional message data&quot;)</span>
-<span class="fc" id="L38">    val data: Map&lt;String, Any&gt;?</span>
+<span class="fc" id="L30">    @Schema(description = &quot;Whether the user code has been verified&quot;, example = &quot;false&quot;)</span>
+<span class="fc" id="L31">    val userCodeVerified: Boolean,</span>
+    
+<span class="fc" id="L33">    @Schema(description = &quot;When the user code was verified&quot;, </span>
+           example = &quot;2024-02-26T12:34:56.789Z&quot;,
+           nullable = true)
+<span class="fc" id="L36">    val userCodeVerifiedAt: Instant?</span>
 )
 
-<span class="fc" id="L41">@Schema(description = &quot;Session start request&quot;)</span>
-<span class="fc" id="L42">data class StartSessionRequest(</span>
-<span class="fc" id="L43">    @Schema(description = &quot;Username to start session for&quot;, example = &quot;jsmith&quot;)</span>
-<span class="fc" id="L44">    val username: String</span>
+<span class="fc" id="L39">@Schema(description = &quot;User code verification request&quot;)</span>
+<span class="fc" id="L40">data class UserCodeVerification(</span>
+<span class="fc" id="L41">    @Schema(description = &quot;User code to verify&quot;, example = &quot;12345678&quot;, nullable = true)</span>
+<span class="fc" id="L42">    val userCode: String?,</span>
+    
+<span class="fc" id="L44">    @Schema(description = &quot;Session ID&quot;, example = &quot;123e4567-e89b-12d3-a456-426614174000&quot;)</span>
+<span class="fc" id="L45">    val sessionId: String</span>
 )
 
-<span class="fc" id="L47">@Schema(description = &quot;PIN options request&quot;)</span>
-<span class="fc" id="L48">data class PinOptionsRequest(</span>
-<span class="fc" id="L49">    @Schema(description = &quot;Session ID to get PIN options for&quot;, </span>
-           example = &quot;123e4567-e89b-12d3-a456-426614174000&quot;)
-<span class="fc" id="L51">    val sessionId: String</span>
+<span class="fc" id="L48">@Schema(description = &quot;Available user code options&quot;)</span>
+<span class="fc" id="L49">data class UserCodeOptions(</span>
+<span class="fc" id="L50">    @Schema(</span>
+        description = &quot;List of user code options (2-digit PINs)&quot;, 
+        example = &quot;[\&quot;42\&quot;, \&quot;13\&quot;, \&quot;87\&quot;]&quot;
+    )
+<span class="fc" id="L54">    val userCodes: List&lt;String&gt;,</span>
+    
+<span class="fc" id="L56">    @Schema(description = &quot;Session ID&quot;, example = &quot;123e4567-e89b-12d3-a456-426614174000&quot;)</span>
+<span class="fc" id="L57">    val sessionId: String</span>
 )
 
-<span class="fc" id="L54">@Schema(description = &quot;PIN verification response&quot;)</span>
-<span class="fc" id="L55">data class PinVerificationResponse(</span>
-<span class="fc" id="L56">    @Schema(description = &quot;Whether the PIN verification was successful&quot;, </span>
+<span class="fc" id="L60">@Schema(description = &quot;WebSocket message&quot;)</span>
+<span class="fc" id="L61">data class WebSocketMessage(</span>
+<span class="fc" id="L62">    @Schema(description = &quot;Message type&quot;, example = &quot;auth_complete&quot;)</span>
+<span class="fc" id="L63">    val type: String,</span>
+    
+<span class="fc" id="L65">    @Schema(description = &quot;Optional message data&quot;)</span>
+<span class="fc" id="L66">    val data: Map&lt;String, Any&gt;?</span>
+)
+
+<span class="fc" id="L69">@Schema(description = &quot;Session start request&quot;)</span>
+<span class="fc" id="L70">data class StartSessionRequest(</span>
+<span class="fc" id="L71">    @Schema(description = &quot;Subject identifier&quot;, example = &quot;user123&quot;)</span>
+<span class="fc" id="L72">    val subjectId: String,</span>
+    
+<span class="fc" id="L74">    @Schema(description = &quot;Authentication type&quot;, example = &quot;QR_CODE&quot;, </span>
+           allowableValues = [&quot;QR_CODE&quot;, &quot;USER_CODE&quot;, &quot;PIN_2D&quot;, &quot;PIN_8D&quot;, &quot;SILENT&quot;])
+<span class="fc" id="L76">    val type: AuthType,</span>
+    
+<span class="fc" id="L78">    @Schema(description = &quot;Transaction details&quot;, example = &quot;{\&quot;id\&quot;: 12345, \&quot;amount\&quot;: 100, \&quot;currency\&quot;: \&quot;USD\&quot;}&quot;)</span>
+<span class="fc" id="L79">    val transaction: Map&lt;String, Any&gt;?</span>
+)
+
+<span class="fc" id="L82">@Schema(description = &quot;User code verification response&quot;)</span>
+<span class="fc" id="L83">data class UserCodeVerificationResponse(</span>
+<span class="fc" id="L84">    @Schema(description = &quot;Whether the user code verification was successful&quot;, </span>
            example = &quot;true&quot;)
-<span class="fc" id="L58">    val success: Boolean</span>
+<span class="fc" id="L86">    val success: Boolean,</span>
+    
+<span class="fc" id="L88">    @Schema(description = &quot;When the verification occurred&quot;, </span>
+           example = &quot;2024-02-26T12:34:56.789Z&quot;,
+           nullable = true)
+<span class="fc" id="L91">    val verifiedAt: Instant?</span>
 )
 
-<span class="fc" id="L61">@Schema(description = &quot;Delete session response&quot;)</span>
-<span class="fc" id="L62">data class DeleteSessionResponse(</span>
-<span class="fc" id="L63">    @Schema(description = &quot;Status of the delete operation&quot;, example = &quot;success&quot;)</span>
-<span class="fc" id="L64">    val status: String</span>
+<span class="fc" id="L94">@Schema(description = &quot;Delete session response&quot;)</span>
+<span class="fc" id="L95">data class DeleteSessionResponse(</span>
+<span class="fc" id="L96">    @Schema(description = &quot;Status of the delete operation&quot;, example = &quot;success&quot;)</span>
+<span class="fc" id="L97">    val status: String</span>
+)
+
+<span class="fc" id="L100">@Schema(description = &quot;Signed payload request&quot;)</span>
+<span class="fc" id="L101">data class SignedPayloadRequest(</span>
+<span class="fc" id="L102">    @Schema(description = &quot;Session ID&quot;, example = &quot;123e4567-e89b-12d3-a456-426614174000&quot;)</span>
+<span class="fc" id="L103">    val sessionId: String,</span>
+    
+<span class="fc" id="L105">    @Schema(</span>
+        description = &quot;Signed JWT payload&quot;,
+        example = &quot;&quot;&quot;
+            {
+                &quot;user_code&quot;: &quot;12345678&quot;,
+                &quot;user_action&quot;: &quot;APPROVE_TRANSACTION&quot;,
+                &quot;txn&quot;: {
+                    &quot;id&quot;: &quot;123456789&quot;,
+                    &quot;key&quot;: &quot;value&quot;
+                },
+                &quot;timestamp&quot;: &quot;1747872000&quot;,
+                &quot;oauth_token&quot;: {
+                    &quot;token&quot;: &quot;eyJhbGciOiJIUzI1NiJ9...&quot;,
+                    &quot;public_key&quot;: &quot;base64url(oauth_pubkey.pem) or JWKS object&quot;
+                },
+                &quot;stronghold_token&quot;: {
+                    &quot;token&quot;: &quot;eyJraWQiOiJzdHJvbmdob2xkLi4.&quot;,
+                    &quot;signature&quot;: &quot;base64(signed_stronghold_token)&quot;,
+                    &quot;public_key&quot;: &quot;base64url(stronghold_pubkey)&quot;
+                },
+                &quot;signature&quot;: &quot;base64(signed_txn)&quot;,
+                &quot;device_public_key&quot;: &quot;base64(device_pubkey.pem)&quot;,
+                &quot;txn_hash&quot;: {
+                    &quot;algorithm&quot;: &quot;SHA-256&quot;,
+                    &quot;hash&quot;: &quot;base64(sha256(payload_without_txn_hash))&quot;
+                }
+            }
+        &quot;&quot;&quot;
+    )
+<span class="fc" id="L134">    val signedPayload: String</span>
 ) 
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

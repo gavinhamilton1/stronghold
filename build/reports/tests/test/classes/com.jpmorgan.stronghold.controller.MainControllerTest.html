@@ -23,7 +23,7 @@
 <tr>
 <td>
 <div class="infoBox" id="tests">
-<div class="counter">4</div>
+<div class="counter">7</div>
 <p>tests</p>
 </div>
 </td>
@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">0.289s</div>
+<div class="counter">0.483s</div>
 <p>duration</p>
 </div>
 </td>
@@ -63,6 +63,9 @@
 <li>
 <a href="#tab0">Tests</a>
 </li>
+<li>
+<a href="#tab1">Standard output</a>
+</li>
 </ul>
 <div id="tab0" class="tab">
 <h2>Tests</h2>
@@ -75,26 +78,71 @@
 </tr>
 </thead>
 <tr>
-<td class="success">deleteSession calls service and returns success response()</td>
+<td class="success">delete session returns success response()</td>
+<td class="success">0.022s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">get user code options returns 400 for non-PIN_2D session()</td>
 <td class="success">0.015s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
-<td class="success">getPinOptions calls service and returns options()</td>
-<td class="success">0.238s</td>
+<td class="success">get user code options returns options for PIN_2D session()</td>
+<td class="success">0.035s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
-<td class="success">startSession calls service and returns session info()</td>
-<td class="success">0.028s</td>
+<td class="success">start session returns session info with verification status()</td>
+<td class="success">0.045s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
-<td class="success">verifyPinSelection calls service and returns response()</td>
-<td class="success">0.008s</td>
+<td class="success">store payload fails with 400 when code not verified()</td>
+<td class="success">0.027s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">store payload succeeds for verified session()</td>
+<td class="success">0.022s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">verify user code returns success response when verified()</td>
+<td class="success">0.317s</td>
 <td class="success">passed</td>
 </tr>
 </table>
+</div>
+<div id="tab1" class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>08:45:13.396 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.jpmorgan.stronghold.controller.MainControllerTest]: MainControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+08:45:13.658 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.jpmorgan.stronghold.StrongholdApplication for test class com.jpmorgan.stronghold.controller.MainControllerTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.3)
+
+2025-02-26T08:45:14.062-05:00  INFO 38511 --- [    Test worker] c.j.s.controller.MainControllerTest      : Starting MainControllerTest using Java 17.0.10 with PID 38511 (started by gavin in /Users/gavin/Library/CloudStorage/OneDrive-Personal/dev/jpmc/StrongholdWeb)
+2025-02-26T08:45:14.063-05:00  INFO 38511 --- [    Test worker] c.j.s.controller.MainControllerTest      : The following 1 profile is active: &quot;test&quot;
+2025-02-26T08:45:16.211-05:00  WARN 38511 --- [    Test worker] .s.s.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: deb9f713-50db-4038-a5d9-cc6ffbffd9a2
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2025-02-26T08:45:17.452-05:00  INFO 38511 --- [    Test worker] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@ed6d97f, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@45cfbfe9, org.springframework.security.web.context.SecurityContextHolderFilter@20983174, org.springframework.security.web.header.HeaderWriterFilter@37445c57, org.springframework.web.filter.CorsFilter@13dff835, org.springframework.security.web.authentication.logout.LogoutFilter@253cbe79, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@6f1720f8, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@27de073b, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@7682b160, org.springframework.security.web.access.ExceptionTranslationFilter@7de922ba, org.springframework.security.web.access.intercept.AuthorizationFilter@4b9fd79]
+2025-02-26T08:45:17.650-05:00  INFO 38511 --- [    Test worker] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2025-02-26T08:45:17.650-05:00  INFO 38511 --- [    Test worker] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2025-02-26T08:45:17.652-05:00  INFO 38511 --- [    Test worker] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2025-02-26T08:45:17.681-05:00  INFO 38511 --- [    Test worker] c.j.s.controller.MainControllerTest      : Started MainControllerTest in 3.943 seconds (process running for 5.737)
+</pre>
+</span>
 </div>
 </div>
 <div id="footer">
@@ -104,7 +152,7 @@
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="http://www.gradle.org">Gradle 8.4</a> at Feb 25, 2025, 8:42:53 PM</p>
+<a href="http://www.gradle.org">Gradle 8.4</a> at Feb 26, 2025, 8:45:19 AM</p>
 </div>
 </div>
 </body>

@@ -1,183 +1,193 @@
 package com.jpmorgan.stronghold.service
 
-import com.jpmorgan.stronghold.model.PinOptionsRequest
-import com.jpmorgan.stronghold.model.PinVerification
+import com.jpmorgan.stronghold.entity.SessionEntity
+import com.jpmorgan.stronghold.model.AuthType
+import com.jpmorgan.stronghold.model.UserCodeVerification
+import com.jpmorgan.stronghold.repository.SessionRepository
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.assertThrows
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
+import java.util.Optional
+import java.time.Instant
 import org.assertj.core.api.Assertions.assertThat
-import java.util.NoSuchElementException
 
 class SessionServiceTest {
     private lateinit var sessionService: SessionService
+    private lateinit var sessionRepository: SessionRepository
+    private lateinit var objectMapper: ObjectMapper
 
     @BeforeEach
     fun setup() {
-        sessionService = SessionService()
+        sessionRepository = mock(SessionRepository::class.java)
+        objectMapper = ObjectMapper()
+        sessionService = SessionService(sessionRepository, objectMapper)
     }
 
     @Test
-    fun `startSession creates new session with PIN`() {
-        val username = "testUser"
-        val result = sessionService.startSession(username)
-
-        assertThat(result.sessionId).isNotEmpty()
-        assertThat(result.pin).matches("\\d{2}")  // Two digit PIN
-    }
-
-    @Test
-    fun `getPinOptions returns correct number of options including actual PIN`() {
-        // Start a session first
-        val username = "testUser"
-        val session = sessionService.startSession(username)
+    fun `startSession creates session with correct verification status`() {
+        val subjectId = "user123"
+        val type = AuthType.PIN_2D
         
-        // Get PIN options
-        val options = sessionService.getPinOptions(session.sessionId)
-
-        assertThat(options.pins).hasSize(3)
-        assertThat(options.pins).contains(session.pin)
-        assertThat(options.sessionId).isEqualTo(session.sessionId)
-    }
-
-    @Test
-    fun `getPinOptions throws exception for invalid session`() {
-        assertThrows<NoSuchElementException> {
-            sessionService.getPinOptions("invalid-session-id")
-        }
-    }
-
-    @Test
-    fun `verifyPin returns true for correct PIN`() {
-        // Start a session
-        val username = "testUser"
-        val session = sessionService.startSession(username)
+        whenever(sessionRepository.save(any())).thenAnswer { it.arguments[0] }
         
-        // Verify correct PIN
-        val result = sessionService.verifyPin(
-            PinVerification(pin = session.pin, sessionId = session.sessionId)
+        val result = sessionService.startSession(subjectId, type, null)
+        
+        assertThat(result.userCodeVerified).isFalse()
+        assertThat(result.userCodeVerifiedAt).isNull()
+        assertThat(result.subjectId).isEqualTo(subjectId)
+        assertThat(result.userCode).matches("[0-9]{2}")
+    }
+
+    @Test
+    fun `verifyUserCode updates verification status when correct`() {
+        val sessionId = "test-session"
+        val userCode = "42"
+        val session = SessionEntity(
+            sessionId = sessionId,
+            subjectId = "user123",
+            userCode = userCode,
+            authType = AuthType.PIN_2D,
+            transactionData = null
         )
-
+        
+        whenever(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session))
+        whenever(sessionRepository.save(any())).thenAnswer { it.arguments[0] }
+        
+        val result = sessionService.verifyUserCode(UserCodeVerification(userCode, sessionId))
+        
         assertThat(result).isTrue()
+        assertThat(session.userCodeVerified).isTrue()
+        assertThat(session.userCodeVerifiedAt).isNotNull()
     }
 
     @Test
-    fun `verifyPin returns false for incorrect PIN`() {
-        // Start a session
-        val username = "testUser"
-        val session = sessionService.startSession(username)
-        
-        // Verify incorrect PIN
-        val result = sessionService.verifyPin(
-            PinVerification(pin = "99", sessionId = session.sessionId)
+    fun `verifyUserCode fails with incorrect code`() {
+        val sessionId = "test-session"
+        val session = SessionEntity(
+            sessionId = sessionId,
+            subjectId = "user123",
+            userCode = "42",
+            authType = AuthType.PIN_2D,
+            transactionData = null
         )
-
+        
+        whenever(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session))
+        
+        val result = sessionService.verifyUserCode(UserCodeVerification("wrong-code", sessionId))
+        
         assertThat(result).isFalse()
+        assertThat(session.userCodeVerified).isFalse()
+        assertThat(session.userCodeVerifiedAt).isNull()
     }
 
     @Test
-    fun `verifyPin returns false for invalid session`() {
-        val result = sessionService.verifyPin(
-            PinVerification(pin = "12", sessionId = "invalid-session")
+    fun `storeSignedPayload succeeds for verified PIN_2D session`() {
+        val sessionId = "test-session"
+        val session = SessionEntity(
+            sessionId = sessionId,
+            subjectId = "user123",
+            userCode = "42",
+            authType = AuthType.PIN_2D,
+            transactionData = null
+        ).apply {
+            userCodeVerified = true
+            userCodeVerifiedAt = Instant.now()
+        }
+        
+        whenever(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session))
+        whenever(sessionRepository.save(any())).thenAnswer { it.arguments[0] }
+        
+        sessionService.storeSignedPayload(sessionId, "test-payload")
+        
+        assertThat(session.signedPayload).isEqualTo("test-payload")
+    }
+
+    @Test
+    fun `storeSignedPayload fails for unverified PIN_2D session`() {
+        val sessionId = "test-session"
+        val session = SessionEntity(
+            sessionId = sessionId,
+            subjectId = "user123",
+            userCode = "42",
+            authType = AuthType.PIN_2D,
+            transactionData = null
         )
-
-        assertThat(result).isFalse()
-    }
-
-    @Test
-    fun `deleteSession removes session and PIN`() {
-        // Start a session
-        val username = "testUser"
-        val session = sessionService.startSession(username)
         
-        // Delete session
-        sessionService.deleteSession(session.sessionId)
+        whenever(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session))
         
-        // Verify session is deleted
-        assertThrows<NoSuchElementException> {
-            sessionService.getPinOptions(session.sessionId)
+        assertThrows<IllegalStateException> {
+            sessionService.storeSignedPayload(sessionId, "test-payload")
         }
     }
 
     @Test
-    fun `startSession creates new session with transaction data`() {
-        // Given
-        val username = "jsmith"
-        val transaction = mapOf(
-            "id" to 12345,
-            "amount" to 100,
-            "currency" to "USD"
+    fun `storeSignedPayload succeeds for SILENT auth type without verification`() {
+        val sessionId = "test-session"
+        val session = SessionEntity(
+            sessionId = sessionId,
+            subjectId = "user123",
+            userCode = null,
+            authType = AuthType.SILENT,
+            transactionData = null
         )
-
-        // When
-        val session = sessionService.startSession(username, transaction)
-
-        // Then
-        assertThat(session.sessionId).isNotEmpty()
-        assertThat(session.username).isEqualTo(username)
-        assertThat(session.pin).matches("[0-9]{2}")
-        assertThat(session.transaction).isEqualTo(transaction)
+        
+        whenever(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session))
+        whenever(sessionRepository.save(any())).thenAnswer { it.arguments[0] }
+        
+        sessionService.storeSignedPayload(sessionId, "test-payload")
+        
+        assertThat(session.signedPayload).isEqualTo("test-payload")
     }
 
     @Test
-    fun `startSession creates new session without transaction`() {
-        // Given
-        val username = "jsmith"
-
-        // When
-        val session = sessionService.startSession(username)
-
-        // Then
-        assertThat(session.sessionId).isNotEmpty()
-        assertThat(session.username).isEqualTo(username)
-        assertThat(session.pin).matches("[0-9]{2}")
-        assertThat(session.transaction).isNull()
+    fun `getUserCodeOptions fails for non-PIN_2D session`() {
+        val sessionId = "test-session"
+        val session = SessionEntity(
+            sessionId = sessionId,
+            subjectId = "user123",
+            userCode = "12345678",
+            authType = AuthType.PIN_8D,
+            transactionData = null
+        )
+        
+        whenever(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session))
+        
+        assertThrows<IllegalStateException> {
+            sessionService.getUserCodeOptions(sessionId)
+        }
     }
 
     @Test
-    fun `verifyPin returns false for invalid session`() {
-        // Given
-        val verification = PinVerification(
-            sessionId = "invalid-session",
-            pin = "42"
+    fun `getUserCodeOptions returns three unique 2-digit codes for PIN_2D session`() {
+        val sessionId = "test-session"
+        val session = SessionEntity(
+            sessionId = sessionId,
+            subjectId = "user123",
+            userCode = "42",
+            authType = AuthType.PIN_2D,
+            transactionData = null
         )
-
-        // When
-        val result = sessionService.verifyPin(verification)
-
-        // Then
-        assertThat(result).isFalse()
+        
+        whenever(sessionRepository.findById(sessionId)).thenReturn(Optional.of(session))
+        
+        val result = sessionService.getUserCodeOptions(sessionId)
+        
+        assertThat(result.userCodes).hasSize(3)
+        assertThat(result.userCodes).contains(session.userCode)
+        assertThat(result.userCodes).allMatch { it.length == 2 && it.toIntOrNull() != null }
     }
 
     @Test
-    fun `deleteSession removes session data`() {
-        // Given
-        val session = sessionService.startSession(
-            username = "jsmith",
-            transaction = mapOf("id" to 12345)
-        )
-
-        // When
-        sessionService.deleteSession(session.sessionId)
-
-        // Then
-        val verification = PinVerification(
-            sessionId = session.sessionId,
-            pin = session.pin
-        )
-        assertThat(sessionService.verifyPin(verification)).isFalse()
-    }
-
-    @Test
-    fun `getPinOptions includes actual PIN in options`() {
-        // Given
-        val session = sessionService.startSession("jsmith")
-
-        // When
-        val options = sessionService.getPinOptions(session.sessionId)
-
-        // Then
-        assertThat(options.pins).hasSize(3)
-        assertThat(options.pins).contains(session.pin)
-        assertThat(options.sessionId).isEqualTo(session.sessionId)
+    fun `deleteSession removes session`() {
+        val sessionId = "test-session"
+        
+        sessionService.deleteSession(sessionId)
+        
+        verify(sessionRepository).deleteById(sessionId)
     }
 } 
