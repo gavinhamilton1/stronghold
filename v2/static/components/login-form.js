@@ -31,10 +31,23 @@ class LoginForm {
                     placeholder="Enter your username"
                     class="username-input">
                 <span class="material-icons" 
+                    id="biometric-button"
                     style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin-top: -8px; line-height: 0; cursor: pointer; color: #000; font-size: 24px; opacity: 0.6;">
                     fingerprint
                 </span>
             </div>
+            <!--div class="input-label">Password</div>
+            <div style="position: relative;">
+                <input type="password" 
+                    id="password-input" 
+                    placeholder="Enter your password"
+                    class="username-input">
+                <span class="material-icons" 
+                    style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin-top: -8px; line-height: 0; cursor: pointer; color: #000; font-size: 24px; opacity: 0.6;"
+                    onclick="this.textContent = this.textContent === 'visibility' ? 'visibility_off' : 'visibility'; this.previousElementSibling.type = this.previousElementSibling.type === 'password' ? 'text' : 'password'">
+                    visibility
+                </span>
+            </div-->
             <div class="remember-me">
                 <input type="checkbox" id="remember-username">
                 <label for="remember-username">Remember username</label>
@@ -51,17 +64,86 @@ class LoginForm {
         this.container.appendChild(loginContainer);
     }
 
+    showStatus(message, type = 'error') {
+        // Remove any existing status message
+        const existingStatus = document.querySelector('.status-message');
+        if (existingStatus) {
+            existingStatus.remove();
+        }
+
+        // Create new status message
+        const statusDiv = document.createElement('div');
+        statusDiv.className = `status-message ${type}`;
+        statusDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 4px;
+            background-color: ${type === 'error' ? '#f44336' : '#4CAF50'};
+            color: white;
+            z-index: 1000;
+        `;
+        statusDiv.textContent = message;
+
+        // Add to document
+        document.body.appendChild(statusDiv);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            statusDiv.remove();
+        }, 3000);
+    }
+
     attachEvents() {
         const usernameInput = this.container.querySelector('#username-input');
         const rememberCheckbox = this.container.querySelector('#remember-username');
         const continueButton = this.container.querySelector('.continue-button');
+        const biometricButton = this.container.querySelector('#biometric-button');
 
-        // Load saved username if exists
+        // Load saved username and trigger biometrics if exists
         const savedUsername = this.getCookie('username');
         if (savedUsername) {
             usernameInput.value = savedUsername;
             rememberCheckbox.checked = true;
+            
+            // Automatically trigger biometric authentication
+            setTimeout(async () => {
+                try {
+                    const success = await mobileStepUp.authenticateWithBiometrics();
+                    if (success) {
+                        mobileStepUp.showConfirmation(savedUsername);
+                    } else {
+                        this.showStatus('Biometric authentication failed. Please try again.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Biometric authentication error:', error);
+                    this.showStatus('Biometric authentication failed. Please try again.', 'error');
+                }
+            }, 500); // Small delay to ensure everything is loaded
         }
+
+        // Add biometric button click handler
+        biometricButton.addEventListener('click', async () => {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                this.showStatus('Please enter a username', 'error');
+                return;
+            }
+
+            try {
+                const success = await mobileStepUp.authenticateWithBiometrics();
+                if (success) {
+                    mobileStepUp.showConfirmation(username);
+                } else {
+                    this.showStatus('Biometric authentication failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Biometric authentication error:', error);
+                this.showStatus('Biometric authentication failed. Please try again.', 'error');
+            }
+        });
 
         // Handle continue button click
         continueButton.addEventListener('click', async () => {
