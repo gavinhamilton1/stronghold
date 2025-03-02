@@ -84,6 +84,9 @@ class LoginForm {
             background-color: ${type === 'error' ? '#f44336' : '#4CAF50'};
             color: white;
             z-index: 1000;
+            min-width: 300px;
+            text-align: center;
+            white-space: nowrap;
         `;
         statusDiv.textContent = message;
 
