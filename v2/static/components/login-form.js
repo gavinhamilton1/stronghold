@@ -1,4 +1,5 @@
 class LoginForm {
+
     constructor(containerId, options = {}) {
         document.addEventListener('DOMContentLoaded', () => {
             this.container = document.getElementById(containerId);
@@ -10,26 +11,44 @@ class LoginForm {
     }
 
     render() {
-        this.container.innerHTML = `
-            <div class="login-container">
-                <div class="login-title">Log in</div>
-                <div class="input-label">Username</div>
+        // Add the icon font link if it doesn't exist
+        if (!document.querySelector('link[href*="fonts.googleapis.com/icon"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
+            document.head.appendChild(link);
+        }
+
+        const loginContainer = document.createElement('div');
+        loginContainer.className = 'login-container';
+
+        loginContainer.innerHTML = `
+            <div class="login-title">Log in</div>
+            <div class="input-label">Username</div>
+            <div style="position: relative;">
                 <input type="text" 
-                       id="username-input" 
-                       placeholder="Enter your username"
-                       class="username-input">
-                <div class="remember-me">
-                    <input type="checkbox" id="remember-username">
-                    <label for="remember-username">Remember username</label>
-                </div>
-                <button class="continue-button">
-                    CONTINUE
-                </button>
-                <div class="help-link">
-                    <a href="#">NEED HELP LOGGING IN?</a>
-                </div>
+                    id="username-input" 
+                    placeholder="Enter your username"
+                    class="username-input">
+                <span class="material-icons" 
+                    style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin-top: -8px; line-height: 0; cursor: pointer; color: #000; font-size: 24px; opacity: 0.6;">
+                    fingerprint
+                </span>
+            </div>
+            <div class="remember-me">
+                <input type="checkbox" id="remember-username">
+                <label for="remember-username">Remember username</label>
+            </div>
+            <button class="continue-button">
+                CONTINUE
+            </button>
+            <div class="help-link">
+                <a href="#">NEED HELP LOGGING IN?</a>
             </div>
         `;
+
+        this.container.innerHTML = '';
+        this.container.appendChild(loginContainer);
     }
 
     attachEvents() {
